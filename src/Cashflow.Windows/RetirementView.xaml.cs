@@ -41,6 +41,7 @@ namespace Cashflow.Windows
             }
             _initialized = true;
             LoadSettings();
+            UpdateInflationModeUi();
             UpdateInflationStatus();
             RenderProjection();
         }
@@ -62,6 +63,42 @@ namespace Cashflow.Windows
             TrySave();
             RenderProjection();
             SaveStatusText.Text = "Guardado localmente · " + DateTime.Now.ToString("HH:mm");
+        }
+
+        private void InflationMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (!TrySaveInputs(true))
+            {
+                return;
+            }
+
+            _document.Retirement.UseInflationAdjustment = !_document.Retirement.UseInflationAdjustment;
+            TrySave();
+            UpdateInflationModeUi();
+            UpdateInflationStatus();
+            RenderProjection();
+            SaveStatusText.Text = "Modo de cálculo guardado · " + DateTime.Now.ToString("HH:mm");
+        }
+
+        private void UpdateInflationModeUi()
+        {
+            if (_document.Retirement.UseInflationAdjustment)
+            {
+                InflationModeButton.Content = "Ajustado por inflación";
+                InflationModeDetailText.Text = "Resultados en dólares de hoy.";
+                ProjectionModeDescription.Text = "La línea principal muestra poder adquisitivo actual. Hacé clic en un punto para ver importes exactos; la rueda amplía y el paneo se habilita al ampliar.";
+                StocksResultLabel.Text = "ACCIONES AL FINAL · USD REALES";
+                BondsResultLabel.Text = "BONOS AL FINAL · USD REALES";
+                ReserveModeDescription.Text = "Cada barra ajusta su objetivo por inflación y lo expresa en dólares de hoy, respetando inicio, máximo mensual y prioridad.";
+                return;
+            }
+
+            InflationModeButton.Content = "Nominal · sin inflación";
+            InflationModeDetailText.Text = "La inflación guardada no participa del cálculo.";
+            ProjectionModeDescription.Text = "La línea principal muestra importes nominales con objetivos y gastos fijos. Hacé clic en un punto para ver importes exactos; la rueda amplía y el paneo se habilita al ampliar.";
+            StocksResultLabel.Text = "ACCIONES AL FINAL · USD NOMINALES";
+            BondsResultLabel.Text = "BONOS AL FINAL · USD NOMINALES";
+            ReserveModeDescription.Text = "Cada barra usa un objetivo nominal fijo, respetando inicio, máximo mensual y prioridad.";
         }
 
         private void AddIncome_Click(object sender, RoutedEventArgs e)
@@ -481,14 +518,18 @@ namespace Cashflow.Windows
             SurplusExtraText.Text = "Durante gastos extra: " + FormatMoney(projection.MonthlySurplusDuringExtraExpenses);
             SetSurplusColor(SurplusNormalText, projection.MonthlySurplusAfterExtraExpenses);
             MonthlyWithdrawalText.Text = FormatMoney(projection.MonthlyWithdrawalRealUsd) + " / mes";
-            NominalWithdrawalText.Text = projection.ReachedTarget
+            NominalWithdrawalText.Text = projection.UsesInflationAdjustment && projection.ReachedTarget
                 ? $"Equivale a {FormatMoney(projection.MonthlyWithdrawalNominalAtTargetUsd)} nominales al llegar"
-                : $"{_document.Retirement.WithdrawalRatePercentage:0.##}% anual dividido 12";
+                : projection.UsesInflationAdjustment
+                    ? $"{_document.Retirement.WithdrawalRatePercentage:0.##}% anual dividido 12"
+                    : $"{_document.Retirement.WithdrawalRatePercentage:0.##}% anual dividido 12 · sin inflación";
 
             if (projection.ReachedTarget && projection.EstimatedTargetDate.HasValue && projection.MonthsToTarget.HasValue)
             {
                 TargetDateText.Text = projection.EstimatedTargetDate.Value.ToString("MMMM yyyy", MoneyCulture);
-                TargetDateDetailText.Text = $"{projection.MonthsToTarget.Value} meses · objetivo nominal estimado {FormatMoney(projection.TargetNominalAtGoalUsd)}";
+                TargetDateDetailText.Text = projection.UsesInflationAdjustment
+                    ? $"{projection.MonthsToTarget.Value} meses · objetivo nominal estimado {FormatMoney(projection.TargetNominalAtGoalUsd)}"
+                    : $"{projection.MonthsToTarget.Value} meses · objetivo nominal fijo {FormatMoney(projection.TargetRealUsd)}";
             }
             else
             {
@@ -517,7 +558,9 @@ namespace Cashflow.Windows
 
             RenderRunway(projection.Runway);
             ProjectionStatusText.Text = projection.ReachedTarget
-                ? "El gráfico principal termina en el primer mes en que la cartera supera el objetivo en dólares reales."
+                ? projection.UsesInflationAdjustment
+                    ? "El gráfico principal termina en el primer mes en que la cartera supera el objetivo en dólares reales."
+                    : "El gráfico principal termina en el primer mes en que la cartera supera el objetivo nominal fijo."
                 : "Se muestran 100 años de proyección. Aumentá el aporte, ajustá el objetivo o revisá los supuestos para alcanzarlo antes.";
             ProjectionChart.ShowProjection(projection);
         }
@@ -537,7 +580,9 @@ namespace Cashflow.Windows
             else
             {
                 RunwayDurationText.Text = "Más de 100 años";
-                RunwayDetailText.Text = "El patrimonio todavía cubre el gasto ordinario ajustado por inflación al terminar el horizonte de 100 años.";
+                RunwayDetailText.Text = runway.UsesInflationAdjustment
+                    ? "El patrimonio todavía cubre el gasto ordinario ajustado por inflación al terminar el horizonte de 100 años."
+                    : "El patrimonio todavía cubre el gasto ordinario nominal fijo al terminar el horizonte de 100 años.";
             }
 
             var firstInvestment = _document.Retirement.BondAnnualReturnPercentage <= _document.Retirement.StockAnnualReturnPercentage
@@ -595,7 +640,10 @@ namespace Cashflow.Windows
             var fetched = settings.InflationFetchedAt.HasValue
                 ? " · consulta " + settings.InflationFetchedAt.Value.ToLocalTime().ToString("dd/MM HH:mm")
                 : " · valor inicial incluido";
-            InflationStatusText.Text = $"CPI-U interanual: {period}{fetched}. {settings.InflationSource}";
+            var mode = settings.UseInflationAdjustment
+                ? "Aplicada al cálculo."
+                : "Guardada, pero no aplicada en modo nominal.";
+            InflationStatusText.Text = $"CPI-U interanual: {period}{fetched}. {settings.InflationSource} · {mode}";
         }
 
         private void TrySave()

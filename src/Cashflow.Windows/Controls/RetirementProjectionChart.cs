@@ -229,7 +229,7 @@ namespace Cashflow.Windows.Controls
             var y = MapY(_projection.TargetRealUsd, plot, maximumValue);
             var pen = new Pen(new SolidColorBrush(Color.FromRgb(242, 153, 74)), 1.5) { DashStyle = DashStyles.Dash };
             context.DrawLine(pen, new Point(plot.Left, y), new Point(plot.Right, y));
-            const string label = "OBJETIVO REAL";
+            var label = _projection.UsesInflationAdjustment ? "OBJETIVO REAL" : "OBJETIVO NOMINAL";
             var size = MeasureText(label, 8, FontWeights.Bold);
             context.DrawRoundedRectangle(
                 new SolidColorBrush(Color.FromRgb(49, 38, 23)),
@@ -305,7 +305,7 @@ namespace Cashflow.Windows.Controls
         {
             var items = new[]
             {
-                ("TOTAL REAL", Color.FromRgb(24, 191, 162)),
+                (_projection != null && _projection.UsesInflationAdjustment ? "TOTAL REAL" : "TOTAL NOMINAL", Color.FromRgb(24, 191, 162)),
                 ("ACCIONES", Color.FromRgb(91, 141, 239)),
                 ("BONOS", Color.FromRgb(241, 185, 85))
             };

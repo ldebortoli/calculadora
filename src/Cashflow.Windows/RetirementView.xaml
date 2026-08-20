@@ -153,11 +153,24 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel>
-                    <TextBlock Text="Camino hacia tu objetivo" Foreground="{StaticResource InkBrush}" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock Text="La línea principal muestra dólares de poder adquisitivo actual. Hacé clic en un punto para ver sus importes exactos. La rueda solo amplía; el paneo se habilita al ampliar."
-                               Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
-                </StackPanel>
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Right" Width="220" Margin="18,0,0,0">
+                        <TextBlock Text="MODO DE CÁLCULO" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" />
+                        <Button x:Name="InflationModeButton"
+                                Margin="0,6,0,0"
+                                Padding="10,7"
+                                Background="{StaticResource SurfaceRaisedBrush}"
+                                Foreground="{StaticResource InkBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                Click="InflationMode_Click" />
+                        <TextBlock x:Name="InflationModeDetailText" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="0,5,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Camino hacia tu objetivo" Foreground="{StaticResource InkBrush}" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ProjectionModeDescription" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
 
                 <Grid Grid.Row="1" Margin="0,17,0,13">
                     <Grid.ColumnDefinitions>
@@ -204,14 +217,14 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
                         <StackPanel>
-                            <TextBlock Text="ACCIONES AL FINAL · USD REALES" Foreground="#79A8FA" FontSize="9" FontWeight="Bold" />
+                            <TextBlock x:Name="StocksResultLabel" Foreground="#79A8FA" FontSize="9" FontWeight="Bold" />
                             <TextBlock x:Name="StocksResultText" Text="—" Foreground="{StaticResource InkBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
                             <TextBlock x:Name="AllocationText" Text="Objetivo de acciones" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
                         <StackPanel>
-                            <TextBlock Text="BONOS AL FINAL · USD REALES" Foreground="#F1B955" FontSize="9" FontWeight="Bold" />
+                            <TextBlock x:Name="BondsResultLabel" Foreground="#F1B955" FontSize="9" FontWeight="Bold" />
                             <TextBlock x:Name="BondsResultText" Text="—" Foreground="{StaticResource InkBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
                             <TextBlock x:Name="BondAllocationText" Text="Aportes después del tope de acciones" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" TextWrapping="Wrap" />
                         </StackPanel>
@@ -232,7 +245,7 @@
                         </Border>
                         <StackPanel>
                             <TextBlock Text="Calendario de reservas" Foreground="{StaticResource InkBrush}" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="Cada barra respeta el mes de inicio, el máximo mensual y la prioridad definida en el panel."
+                            <TextBlock x:Name="ReserveModeDescription"
                                        Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,18,0" />
                         </StackPanel>
                     </DockPanel>

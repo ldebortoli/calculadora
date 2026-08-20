@@ -37,6 +37,7 @@ namespace Cashflow.Windows.Data
         public int EmergencyRunwayTargetYears { get; set; } = 60;
 
         public decimal UsInflationPercentage { get; set; } = 3.36m;
+        public bool UseInflationAdjustment { get; set; } = true;
         public DateTimeOffset? InflationPeriod { get; set; } = new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
         public DateTimeOffset? InflationFetchedAt { get; set; }
         public string InflationSource { get; set; } = "U.S. Bureau of Labor Statistics · CPI-U All items (CUUR0000SA0)";

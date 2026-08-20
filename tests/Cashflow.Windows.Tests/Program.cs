@@ -35,7 +35,8 @@ namespace Cashflow.Windows.Tests
                 RetirementProratesAnnualVacationExpense();
                 RetirementFundsStocksBeforeBonds();
                 RetirementCalculatesSixtyYearSustainableExpense();
-                Console.WriteLine("Resultado: 18 correctas, 0 fallidas.");
+                RetirementInflationModeChangesRunway();
+                Console.WriteLine("Resultado: 19 correctas, 0 fallidas.");
                 return 0;
             }
             catch (Exception exception)
@@ -393,6 +394,28 @@ namespace Cashflow.Windows.Tests
             Equal(60, runway.TargetYears);
             Near(100d, runway.SustainableMonthlyExpenseUsd, 0.02d);
             Near(100d, runway.RequiredMonthlyReductionUsd, 0.02d);
+        }
+
+        private static void RetirementInflationModeChangesRunway()
+        {
+            var settings = CreateRetirementSettings();
+            settings.InitialBondsCents = 120000;
+            settings.OrdinaryMonthlyExpensesCents = 10000;
+            settings.TargetInvestedCents = 100000000;
+            settings.BondAnnualReturnPercentage = 0m;
+            settings.UsInflationPercentage = 12m;
+            settings.UseInflationAdjustment = false;
+
+            var nominal = new RetirementCalculator().Calculate(settings);
+            settings.UseInflationAdjustment = true;
+            var adjusted = new RetirementCalculator().Calculate(settings);
+
+            True(!nominal.UsesInflationAdjustment);
+            True(adjusted.UsesInflationAdjustment);
+            True(!nominal.Runway.UsesInflationAdjustment);
+            True(adjusted.Runway.UsesInflationAdjustment);
+            Equal(12, nominal.Runway.MonthsCovered);
+            True(adjusted.Runway.MonthsCovered < nominal.Runway.MonthsCovered);
         }
 
         private static RetirementSettings CreateRetirementSettings()

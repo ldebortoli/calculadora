@@ -27,10 +27,19 @@ namespace Cashflow.Windows.Data
             var stockTarget = ToDollars(settings.TargetStocksCents ?? 0);
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
-            var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
+            var inflationMonthlyRate = settings.UseInflationAdjustment
+                ? MonthlyEquivalent(settings.UsInflationPercentage)
+                : 0d;
             var inflationFactor = 1d;
             var contributions = 0d;
             var reserves = settings.Reserves.Select(ReserveState.FromSettings).ToList();
+            foreach (var reserve in reserves)
+            {
+                if (reserve.Target > 0d && reserve.Current >= reserve.Target)
+                {
+                    reserve.ReachedMonth = 0;
+                }
+            }
             var points = new List<RetirementProjectionPoint>();
 
             AddPoint(points, 0, stocks, bonds, inflationFactor);
@@ -46,15 +55,25 @@ namespace Cashflow.Windows.Data
                 var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extra);
                 foreach (var reserve in reserves)
                 {
+                    if (reserve.ReachedMonth.HasValue)
+                    {
+                        continue;
+                    }
+                    var reserveTargetNominal = reserve.Target * inflationFactor;
                     var reserved = AllocateReserve(
                         available,
                         reserve.Current,
-                        reserve.Target,
+                        reserveTargetNominal,
                         reserve.MonthlyCap,
                         month,
                         reserve.StartAfterMonths);
                     reserve.Current += reserved;
                     available -= reserved;
+                    if (reserve.Target > 0d && reserve.Current >= reserveTargetNominal)
+                    {
+                        reserve.ReachedMonth = month;
+                        reserve.CompletionInflationFactor = inflationFactor;
+                    }
                 }
 
                 var stockTargetNominal = stockTarget * inflationFactor;
@@ -81,6 +100,7 @@ namespace Cashflow.Windows.Data
 
             return new RetirementProjection
             {
+                UsesInflationAdjustment = settings.UseInflationAdjustment,
                 ReachedTarget = reached,
                 MonthsToTarget = reachedMonth,
                 EstimatedTargetDate = reachedMonth.HasValue ? DateTime.Today.AddMonths(reachedMonth.Value) : (DateTime?)null,
@@ -118,28 +138,40 @@ namespace Cashflow.Windows.Data
                 if (state.Target > 0d && state.Current >= state.Target)
                 {
                     state.ReachedMonth = 0;
+                    state.CompletionInflationFactor = 1d;
                 }
             }
 
+            var inflationMonthlyRate = settings.UseInflationAdjustment
+                ? MonthlyEquivalent(settings.UsInflationPercentage)
+                : 0d;
+            var inflationFactor = 1d;
             var maximumMonths = MaximumProjectionYears * 12;
-            for (var month = 1; month <= maximumMonths && states.Any(state => state.Target > state.Current); month++)
+            for (var month = 1; month <= maximumMonths && states.Any(state => state.Target > 0d && !state.ReachedMonth.HasValue); month++)
             {
+                inflationFactor *= 1d + inflationMonthlyRate;
                 var extra = month <= settings.ExtraExpenseMonths ? extraExpense : 0d;
                 var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extra);
                 foreach (var state in states)
                 {
+                    if (state.ReachedMonth.HasValue)
+                    {
+                        continue;
+                    }
+                    var reserveTargetNominal = state.Target * inflationFactor;
                     var reserved = AllocateReserve(
                         available,
                         state.Current,
-                        state.Target,
+                        reserveTargetNominal,
                         state.MonthlyCap,
                         month,
                         state.StartAfterMonths);
                     state.Current += reserved;
                     available -= reserved;
-                    if (!state.ReachedMonth.HasValue && state.Target > 0d && state.Current >= state.Target)
+                    if (state.Target > 0d && state.Current >= reserveTargetNominal)
                     {
                         state.ReachedMonth = month;
+                        state.CompletionInflationFactor = inflationFactor;
                     }
                 }
             }
@@ -148,7 +180,9 @@ namespace Cashflow.Windows.Data
             {
                 Name = state.Name,
                 InitialCurrentUsd = state.InitialCurrent,
-                FinalUsd = state.Current,
+                FinalUsd = state.Current / Math.Max(
+                    1d,
+                    state.ReachedMonth.HasValue ? state.CompletionInflationFactor : inflationFactor),
                 TargetUsd = state.Target,
                 StartAfterMonths = state.StartAfterMonths,
                 MonthlyCapUsd = state.MonthlyCap,
@@ -169,7 +203,9 @@ namespace Cashflow.Windows.Data
                 ToDollars(settings.AnnualVacationExpensesCents) / 12d;
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
-            var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
+            var inflationMonthlyRate = settings.UseInflationAdjustment
+                ? MonthlyEquivalent(settings.UsInflationPercentage)
+                : 0d;
             var inflationFactor = 1d;
             var points = new List<RetirementRunwayPoint>();
             AddRunwayPoint(points, 0, liquidReserves, bonds, stocks, ordinaryExpense);
@@ -219,6 +255,7 @@ namespace Cashflow.Windows.Data
             var sustainableExpense = FindSustainableMonthlyExpense(settings, targetMonths);
             return new RetirementRunway
             {
+                UsesInflationAdjustment = settings.UseInflationAdjustment,
                 MonthsCovered = failureMonth.HasValue ? failureMonth.Value - 1 : maximumMonths,
                 FailureMonth = failureMonth,
                 EstimatedFailureDate = failureMonth.HasValue ? DateTime.Today.AddMonths(failureMonth.Value) : (DateTime?)null,
@@ -269,7 +306,9 @@ namespace Cashflow.Windows.Data
             var reserves = settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
-            var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
+            var inflationMonthlyRate = settings.UseInflationAdjustment
+                ? MonthlyEquivalent(settings.UsInflationPercentage)
+                : 0d;
             var inflationFactor = 1d;
 
             for (var month = 1; month <= months; month++)
@@ -420,6 +459,7 @@ namespace Cashflow.Windows.Data
             public int StartAfterMonths { get; set; }
             public double MonthlyCap { get; set; }
             public int? ReachedMonth { get; set; }
+            public double CompletionInflationFactor { get; set; } = 1d;
 
             public static ReserveState FromSettings(RetirementReserveSettings reserve) => new ReserveState
             {
@@ -435,6 +475,7 @@ namespace Cashflow.Windows.Data
 
     public sealed class RetirementProjection
     {
+        public bool UsesInflationAdjustment { get; set; }
         public bool ReachedTarget { get; set; }
         public int? MonthsToTarget { get; set; }
         public DateTime? EstimatedTargetDate { get; set; }
@@ -482,6 +523,7 @@ namespace Cashflow.Windows.Data
 
     public sealed class RetirementRunway
     {
+        public bool UsesInflationAdjustment { get; set; }
         public int MonthsCovered { get; set; }
         public int? FailureMonth { get; set; }
         public DateTime? EstimatedFailureDate { get; set; }

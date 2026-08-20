@@ -19,6 +19,8 @@ namespace Cashflow.Windows.Controls
 
         protected abstract bool HasChartData { get; }
 
+        protected double ChartZoom => _zoom;
+
         protected MatrixTransform ChartTransform =>
             new MatrixTransform(_zoom, 0d, 0d, _zoom, _panOffset.X, _panOffset.Y);
 
@@ -29,12 +31,17 @@ namespace Cashflow.Windows.Controls
             {
                 return;
             }
+            if (e.Delta < 0 && _zoom <= 1d)
+            {
+                return;
+            }
             const double zoomStep = 1.12d;
             var cursor = e.GetPosition(this);
             var contentPoint = new Point((cursor.X - _panOffset.X) / _zoom, (cursor.Y - _panOffset.Y) / _zoom);
             var factor = e.Delta > 0 ? zoomStep : 1d / zoomStep;
-            _zoom = Math.Max(0.55d, Math.Min(2.25d, _zoom * factor));
+            _zoom = Math.Max(1d, Math.Min(2.25d, _zoom * factor));
             _panOffset = cursor - new Point(contentPoint.X * _zoom, contentPoint.Y * _zoom);
+            CoercePan();
             InvalidateVisual();
             e.Handled = true;
         }
@@ -42,7 +49,7 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
-            if (!HasChartData)
+            if (!HasChartData || _zoom <= 1d)
             {
                 return;
             }
@@ -62,6 +69,7 @@ namespace Cashflow.Windows.Controls
                 return;
             }
             _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+            CoercePan();
             InvalidateVisual();
             e.Handled = true;
         }
@@ -123,18 +131,54 @@ namespace Cashflow.Windows.Controls
             if (amount >= 1000d) return $"${amount / 1000d:0.#}k";
             return $"${amount:0}";
         }
+
+        protected Point ToChartPoint(Point point) =>
+            new Point((point.X - _panOffset.X) / _zoom, (point.Y - _panOffset.Y) / _zoom);
+
+        private void CoercePan()
+        {
+            if (_zoom <= 1d)
+            {
+                _zoom = 1d;
+                _panOffset = default;
+                return;
+            }
+            _panOffset.X = Math.Max(ActualWidth * (1d - _zoom), Math.Min(0d, _panOffset.X));
+            _panOffset.Y = Math.Max(ActualHeight * (1d - _zoom), Math.Min(0d, _panOffset.Y));
+        }
     }
 
     public sealed class RetirementReserveTimelineChart : InteractiveRetirementChart
     {
         private IReadOnlyList<RetirementReserveGoal> _goals = Array.Empty<RetirementReserveGoal>();
+        private RetirementReserveGoal? _selectedGoal;
 
         protected override bool HasChartData => _goals.Count > 0;
 
         public void ShowProjection(RetirementProjection projection)
         {
             _goals = projection.ReserveGoals.Where(goal => goal.TargetUsd > 0d).ToList();
+            _selectedGoal = null;
             InvalidateVisual();
+        }
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            if (!HasChartData || ActualWidth < 420d || ActualHeight < 170d)
+            {
+                return;
+            }
+            var plot = new Rect(190d, 48d, Math.Max(1d, ActualWidth - 220d), Math.Max(1d, ActualHeight - 76d));
+            var cursor = ToChartPoint(e.GetPosition(this));
+            if (cursor.Y < plot.Top || cursor.Y > plot.Bottom)
+            {
+                return;
+            }
+            var row = Math.Max(0, Math.Min(_goals.Count - 1, (int)((cursor.Y - plot.Top) / (plot.Height / _goals.Count))));
+            _selectedGoal = _goals[row];
+            InvalidateVisual();
+            e.Handled = true;
         }
 
         protected override void OnRender(DrawingContext context)
@@ -178,7 +222,33 @@ namespace Cashflow.Windows.Controls
                 DrawGoal(context, goal, plot, y, maximumMonth, color);
             }
             context.Pop();
+            DrawSelectionCard(context);
         }
+
+        private void DrawSelectionCard(DrawingContext context)
+        {
+            if (_selectedGoal == null)
+            {
+                return;
+            }
+            var width = Math.Min(320d, Math.Max(230d, ActualWidth - 24d));
+            var x = Math.Max(12d, ActualWidth - width - 12d);
+            context.DrawRoundedRectangle(
+                new SolidColorBrush(Color.FromArgb(244, 19, 31, 49)),
+                new Pen(new SolidColorBrush(Color.FromRgb(54, 73, 102)), 1d),
+                new Rect(x, 8d, width, 60d),
+                9d,
+                9d);
+            DrawText(context, _selectedGoal.Name, 10, FontWeights.Bold, Color.FromRgb(100, 228, 200), new Point(x + 11d, 16d));
+            DrawText(context, $"Actual {ExactMoney(_selectedGoal.InitialCurrentUsd)} · Objetivo {ExactMoney(_selectedGoal.TargetUsd)}", 9, FontWeights.Normal, Color.FromRgb(222, 230, 241), new Point(x + 11d, 33d));
+            var timing = _selectedGoal.EstimatedCompletionDate.HasValue
+                ? "Cumplimiento: " + _selectedGoal.EstimatedCompletionDate.Value.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("es-AR"))
+                : "No se completa dentro de 100 años";
+            DrawText(context, timing, 8, FontWeights.Normal, Color.FromRgb(174, 188, 209), new Point(x + 11d, 49d));
+        }
+
+        private static string ExactMoney(double amount) =>
+            amount.ToString("N2", CultureInfo.GetCultureInfo("es-AR")) + " USD";
 
         private void DrawAxis(DrawingContext context, Rect plot, int maximumMonth)
         {
@@ -250,13 +320,35 @@ namespace Cashflow.Windows.Controls
     public sealed class RetirementRunwayChart : InteractiveRetirementChart
     {
         private RetirementRunway? _runway;
+        private RetirementRunwayPoint? _selectedPoint;
 
         protected override bool HasChartData => _runway != null && _runway.Points.Count > 1;
 
         public void ShowRunway(RetirementRunway runway)
         {
             _runway = runway;
+            _selectedPoint = null;
             InvalidateVisual();
+        }
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            if (!HasChartData || _runway == null || ActualWidth < 320d || ActualHeight < 180d)
+            {
+                return;
+            }
+            var plot = new Rect(66d, 26d, Math.Max(1d, ActualWidth - 92d), Math.Max(1d, ActualHeight - 72d));
+            var maximumYear = Math.Max(_runway.TargetYears, _runway.Points[_runway.Points.Count - 1].Year);
+            var cursor = ToChartPoint(e.GetPosition(this));
+            if (!plot.Contains(cursor))
+            {
+                return;
+            }
+            var selectedYear = (cursor.X - plot.Left) / plot.Width * maximumYear;
+            _selectedPoint = _runway.Points.OrderBy(point => Math.Abs(point.Year - selectedYear)).First();
+            InvalidateVisual();
+            e.Handled = true;
         }
 
         protected override void OnRender(DrawingContext context)
@@ -271,19 +363,95 @@ namespace Cashflow.Windows.Controls
 
             var runway = _runway!;
             var plot = new Rect(66d, 26d, Math.Max(1d, ActualWidth - 92d), Math.Max(1d, ActualHeight - 72d));
-            var maximumYear = Math.Max(1d / 12d, runway.Points[runway.Points.Count - 1].Year);
+            var maximumYear = Math.Max(runway.TargetYears, runway.Points[runway.Points.Count - 1].Year);
             var maximumValue = Math.Max(1d, runway.Points.Max(point => point.TotalUsd) * 1.08d);
 
             context.PushTransform(ChartTransform);
             DrawGrid(context, plot, maximumYear, maximumValue);
+            DrawTargetHorizon(context, runway, plot, maximumYear);
             DrawArea(context, runway.Points, plot, maximumYear, maximumValue);
             DrawSeries(context, runway.Points, plot, maximumYear, maximumValue, point => point.StocksUsd, Color.FromRgb(91, 141, 239), 1.9d);
             DrawSeries(context, runway.Points, plot, maximumYear, maximumValue, point => point.BondsUsd, Color.FromRgb(241, 185, 85), 1.8d);
             DrawSeries(context, runway.Points, plot, maximumYear, maximumValue, point => point.LiquidReservesUsd, Color.FromRgb(126, 203, 238), 2d);
             DrawSeries(context, runway.Points, plot, maximumYear, maximumValue, point => point.TotalUsd, Color.FromRgb(238, 113, 124), 3d);
+            DrawSampleMarkers(context, runway.Points, plot, maximumYear, maximumValue);
+            DrawSelection(context, plot, maximumYear, maximumValue);
             DrawLegend(context, plot);
             context.Pop();
+            DrawSelectionCard(context);
         }
+
+        private void DrawTargetHorizon(DrawingContext context, RetirementRunway runway, Rect plot, double maximumYear)
+        {
+            var x = plot.Left + runway.TargetYears / maximumYear * plot.Width;
+            var pen = new Pen(new SolidColorBrush(Color.FromRgb(100, 228, 200)), 1.4d) { DashStyle = DashStyles.Dash };
+            context.DrawLine(pen, new Point(x, plot.Top), new Point(x, plot.Bottom));
+            var label = runway.TargetYears + " AÑOS";
+            var measured = MeasureText(label, 8, FontWeights.Bold);
+            DrawText(context, label, 8, FontWeights.Bold, Color.FromRgb(100, 228, 200), new Point(Math.Max(plot.Left, x - measured.Width - 5d), plot.Top + 17d));
+        }
+
+        private void DrawSampleMarkers(
+            DrawingContext context,
+            IReadOnlyList<RetirementRunwayPoint> points,
+            Rect plot,
+            double maximumYear,
+            double maximumValue)
+        {
+            var interval = Math.Max(1, points.Count / 20);
+            for (var index = 0; index < points.Count; index += interval)
+            {
+                var point = Map(points[index], item => item.TotalUsd, plot, maximumYear, maximumValue);
+                context.DrawEllipse(
+                    new SolidColorBrush(Color.FromRgb(238, 113, 124)),
+                    new Pen(new SolidColorBrush(Color.FromRgb(15, 23, 38)), 1d),
+                    point,
+                    2.8d,
+                    2.8d);
+            }
+        }
+
+        private void DrawSelection(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
+        {
+            if (_selectedPoint == null)
+            {
+                return;
+            }
+            var total = Map(_selectedPoint, point => point.TotalUsd, plot, maximumYear, maximumValue);
+            context.DrawLine(
+                new Pen(new SolidColorBrush(Color.FromArgb(160, 174, 188, 209)), 1d) { DashStyle = DashStyles.Dash },
+                new Point(total.X, plot.Top),
+                new Point(total.X, plot.Bottom));
+            context.DrawEllipse(
+                new SolidColorBrush(Color.FromRgb(238, 113, 124)),
+                new Pen(Brushes.White, 1d),
+                total,
+                5d,
+                5d);
+        }
+
+        private void DrawSelectionCard(DrawingContext context)
+        {
+            if (_selectedPoint == null)
+            {
+                return;
+            }
+            var width = Math.Min(338d, Math.Max(245d, ActualWidth - 24d));
+            var x = Math.Max(12d, ActualWidth - width - 12d);
+            context.DrawRoundedRectangle(
+                new SolidColorBrush(Color.FromArgb(244, 19, 31, 49)),
+                new Pen(new SolidColorBrush(Color.FromRgb(54, 73, 102)), 1d),
+                new Rect(x, 10d, width, 75d),
+                9d,
+                9d);
+            DrawText(context, $"MES {_selectedPoint.Month} · AÑO {_selectedPoint.Year:0.#}", 9, FontWeights.Bold, Color.FromRgb(238, 113, 124), new Point(x + 11d, 18d));
+            DrawText(context, "Total " + ExactMoney(_selectedPoint.TotalUsd), 11, FontWeights.SemiBold, Color.FromRgb(231, 237, 247), new Point(x + 11d, 35d));
+            DrawText(context, $"Reservas {ExactMoney(_selectedPoint.LiquidReservesUsd)} · Bonos {ExactMoney(_selectedPoint.BondsUsd)}", 8, FontWeights.Normal, Color.FromRgb(174, 188, 209), new Point(x + 11d, 54d));
+            DrawText(context, $"Acciones {ExactMoney(_selectedPoint.StocksUsd)} · Gasto del mes {ExactMoney(_selectedPoint.MonthlyExpenseUsd)}", 8, FontWeights.Normal, Color.FromRgb(174, 188, 209), new Point(x + 11d, 68d));
+        }
+
+        private static string ExactMoney(double amount) =>
+            amount.ToString("N2", CultureInfo.GetCultureInfo("es-AR")) + " USD";
 
         private void DrawGrid(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
         {

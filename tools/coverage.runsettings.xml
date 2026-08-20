@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Include>
+        <ModulePath>.*(Cashflow\.Core|RutaCashflow)\.dll$</ModulePath>
+      </Include>
+      <Exclude>
+        <ModulePath>.*\.Tests\.dll$</ModulePath>
+      </Exclude>
+    </ModulePaths>
+    <Sources>
+      <Include>
+        <Source>.*[\\/]src[\\/].*</Source>
+      </Include>
+      <Exclude>
+        <Source>.*[\\/]obj[\\/].*</Source>
+      </Exclude>
+    </Sources>
+    <Attributes>
+      <Exclude>
+        <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+        <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+        <Attribute>^System\.Runtime\.CompilerServices\.CompilerGeneratedAttribute$</Attribute>
+      </Exclude>
+    </Attributes>
+    <CollectFromChildProcesses>True</CollectFromChildProcesses>
+  </CodeCoverage>
+</Configuration>

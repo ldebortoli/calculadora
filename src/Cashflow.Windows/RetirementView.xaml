@@ -50,6 +50,19 @@
                         <Button Content="+ Agregar otro ingreso" Click="AddIncome_Click" Style="{StaticResource GhostButton}" Margin="0,7,0,0" />
                         <TextBlock Text="Gastos ordinarios mensuales (USD)" Foreground="#D2DAE6" FontSize="10" Margin="0,9,0,4" />
                         <TextBox x:Name="OrdinaryExpensesBox" Text="0" LostFocus="MoneyBox_LostFocus" />
+                        <Grid Margin="0,9,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="10" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Vacaciones por año" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
+                                <TextBox x:Name="AnnualVacationExpensesBox" Text="0,00" LostFocus="MoneyBox_LostFocus" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Prorrateo mensual" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
+                                <Border Background="#18253A" BorderBrush="#2A3852" BorderThickness="1" CornerRadius="5" Padding="9,7">
+                                    <TextBlock x:Name="VacationMonthlyProrationText" Text="0,00 USD" Foreground="#79E5CF" FontSize="11" FontWeight="SemiBold" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
                         <TextBlock Text="Gasto sesión musical mensual (USD)" Foreground="#D2DAE6" FontSize="10" Margin="0,9,0,4" />
                         <TextBox x:Name="MusicSessionExpenseBox" Text="0,00" LostFocus="MoneyBox_LostFocus" />
                         <Grid Margin="0,9,0,0">
@@ -67,6 +80,8 @@
                                 <TextBox x:Name="ExtraMonthsBox" Text="0" />
                             </StackPanel>
                         </Grid>
+                        <TextBlock Text="Horizonte de autonomía sin ingresos (años)" Foreground="#D2DAE6" FontSize="10" Margin="0,9,0,4" />
+                        <TextBox x:Name="RunwayTargetYearsBox" Text="60" />
 
                         <Border Height="1" Background="#263248" Margin="0,17,0,15" />
                         <TextBlock Text="RESERVAS · PRIORIDAD DE ARRIBA HACIA ABAJO" Foreground="#FFCE7A" FontSize="10" FontWeight="Bold" />
@@ -80,8 +95,8 @@
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="10" /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="Aportes a acciones (%)" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
-                                <TextBox x:Name="StockAllocationBox" Text="80" />
+                                <TextBlock Text="Objetivo en acciones (USD de hoy)" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
+                                <TextBox x:Name="StockTargetBox" Text="400.000,00" LostFocus="MoneyBox_LostFocus" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Retorno acciones" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
@@ -99,7 +114,7 @@
                                 <TextBox x:Name="WithdrawalRateBox" Text="3" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Text="Los bonos reciben el porcentaje restante y cada aporte mensual conserva esta distribución."
+                        <TextBlock Text="Después de completar reservas, cada aporte va a acciones hasta alcanzar su objetivo real. Desde ese momento, los nuevos aportes van a bonos."
                                    Foreground="#8F9CB0" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
 
                         <Border Background="#18253A" CornerRadius="10" Padding="12" Margin="0,15,0,0">
@@ -140,7 +155,7 @@
 
                 <StackPanel>
                     <TextBlock Text="Camino hacia tu objetivo" Foreground="{StaticResource InkBrush}" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock Text="La línea principal muestra dólares de poder adquisitivo actual. El objetivo nominal aumenta con la inflación elegida."
+                    <TextBlock Text="La línea principal muestra dólares de poder adquisitivo actual. Hacé clic en un punto para ver sus importes exactos. La rueda solo amplía; el paneo se habilita al ampliar."
                                Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
                 </StackPanel>
 
@@ -191,14 +206,14 @@
                         <StackPanel>
                             <TextBlock Text="ACCIONES AL FINAL · USD REALES" Foreground="#79A8FA" FontSize="9" FontWeight="Bold" />
                             <TextBlock x:Name="StocksResultText" Text="—" Foreground="{StaticResource InkBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
-                            <TextBlock x:Name="AllocationText" Text="80% de la cartera" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" />
+                            <TextBlock x:Name="AllocationText" Text="Objetivo de acciones" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
                         <StackPanel>
                             <TextBlock Text="BONOS AL FINAL · USD REALES" Foreground="#F1B955" FontSize="9" FontWeight="Bold" />
                             <TextBlock x:Name="BondsResultText" Text="—" Foreground="{StaticResource InkBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
-                            <TextBlock x:Name="BondAllocationText" Text="20% de la cartera" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" />
+                            <TextBlock x:Name="BondAllocationText" Text="Aportes después del tope de acciones" Foreground="#8F9EB4" FontSize="9" Margin="0,3,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="4" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
@@ -243,6 +258,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                 <TextBlock x:Name="RunwayDetailText" Text="Completá capital, reservas y gasto ordinario." Foreground="#D7B5BB" FontSize="10" TextWrapping="Wrap" />
+                                <TextBlock x:Name="RunwayAdjustmentText" Text="Objetivo: 60 años." Foreground="#F1B955" FontSize="10" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" />
                                 <TextBlock x:Name="RunwayAssetsText" Text="—" Foreground="#9D7F86" FontSize="9" TextWrapping="Wrap" Margin="0,4,0,0" />
                             </StackPanel>
                         </Grid>

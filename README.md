@@ -23,6 +23,8 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 - Anexo **Sesión musical** para calcular cuánto saldo hace falta para conseguir un objetivo editable en USD (USD 400 inicialmente).
 - Grafo propio del anexo y dos rankings separados: sin pasar por pesos y con pesos bancarizados.
 - Actualización periódica y fechada de dólar blue/oficial, con separación visual entre datos de internet y datos manuales.
+- Estimador de jubilación con múltiples ingresos y reservas, gasto anual de vacaciones prorrateado, aportes secuenciales a acciones y bonos, calendario de objetivos y autonomía de emergencia.
+- Gráficos de Jubilación ajustados al tamaño disponible, con ampliación desde 100%, paneo solo al ampliar y lectura exacta al seleccionar puntos.
 - Sin cuentas, servidores ni envio de datos.
 
 La formula de una transicion es:
@@ -154,6 +156,14 @@ dotnet run --project tests/Cashflow.Core.Tests/Cashflow.Core.Tests.csproj
 dotnet run --project tests/Cashflow.Windows.Tests/Cashflow.Windows.Tests.csproj
 dotnet build CashflowCalculator.sln -c Release
 ```
+
+La validación completa restaura la herramienta local, compila en Release, ejecuta ambas suites y genera un informe Cobertura combinado para `Cashflow.Core` y `Cashflow.Windows`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\Test-Coverage.ps1
+```
+
+El script informa las dos métricas disponibles en el informe Cobertura de este harness: líneas y ramas. Falla por debajo de 34% de líneas o 28% de ramas; la línea base local de la versión 0.9 es 35,00% y 29,30%, respectivamente. GitHub Actions ejecuta esta validación rápida en cada push y pull request; no hay suites externas o costosas recurrentes.
 
 Para generar un ejecutable liviano compatible con el runtime instalado:
 

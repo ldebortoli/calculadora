@@ -31,7 +31,11 @@ namespace Cashflow.Windows.Tests
                 RouteDetailsModalBuildsEveryStep();
                 OppositeRoutesUseSeparateLanes();
                 ManualRatesWindowBuildsWithApplicationResources();
-                Console.WriteLine("Resultado: 14 correctas, 0 fallidas.");
+                RetirementSettingsMigrateAllocationToStockTarget();
+                RetirementProratesAnnualVacationExpense();
+                RetirementFundsStocksBeforeBonds();
+                RetirementCalculatesSixtyYearSustainableExpense();
+                Console.WriteLine("Resultado: 18 correctas, 0 fallidas.");
                 return 0;
             }
             catch (Exception exception)
@@ -332,6 +336,88 @@ namespace Cashflow.Windows.Tests
             }
         }
 
+        private static void RetirementSettingsMigrateAllocationToStockTarget()
+        {
+            var settings = new RetirementSettings
+            {
+                TargetInvestedCents = 50000000,
+                StockAllocationPercentage = 80m,
+                MonthlyIncomeCents = 250000
+            };
+
+            True(settings.EnsurePlanningCollections());
+            Equal(40000000L, settings.TargetStocksCents!.Value);
+            Equal(250000L, settings.MonthlyIncomes.Single().MonthlyAmountCents);
+            Equal(3, settings.Reserves.Count);
+            True(settings.Reserves.Any(reserve => reserve.Kind == "emergency"));
+        }
+
+        private static void RetirementProratesAnnualVacationExpense()
+        {
+            var settings = CreateRetirementSettings();
+            settings.MonthlyIncomes[0].MonthlyAmountCents = 20000;
+            settings.OrdinaryMonthlyExpensesCents = 5000;
+            settings.AnnualVacationExpensesCents = 120000;
+
+            var projection = new RetirementCalculator().Calculate(settings);
+            Near(100d, projection.MonthlyVacationProrationUsd);
+            Near(50d, projection.MonthlySurplusAfterExtraExpenses);
+            Near(150d, projection.Runway.InitialMonthlyExpenseUsd);
+        }
+
+        private static void RetirementFundsStocksBeforeBonds()
+        {
+            var settings = CreateRetirementSettings();
+            settings.MonthlyIncomes[0].MonthlyAmountCents = 20000;
+            settings.AnnualVacationExpensesCents = 120000;
+            settings.TargetInvestedCents = 1000000;
+            settings.TargetStocksCents = 100000;
+
+            var projection = new RetirementCalculator().Calculate(settings);
+            Equal(100, projection.MonthsToTarget!.Value);
+            Near(1000d, projection.FinalStocksRealUsd);
+            Near(9000d, projection.FinalBondsRealUsd);
+        }
+
+        private static void RetirementCalculatesSixtyYearSustainableExpense()
+        {
+            var settings = CreateRetirementSettings();
+            settings.InitialBondsCents = 7200000;
+            settings.OrdinaryMonthlyExpensesCents = 20000;
+            settings.TargetInvestedCents = 100000000;
+            settings.TargetStocksCents = 0;
+            settings.EmergencyRunwayTargetYears = 60;
+
+            var runway = new RetirementCalculator().Calculate(settings).Runway;
+            Equal(360, runway.MonthsCovered);
+            Equal(60, runway.TargetYears);
+            Near(100d, runway.SustainableMonthlyExpenseUsd, 0.02d);
+            Near(100d, runway.RequiredMonthlyReductionUsd, 0.02d);
+        }
+
+        private static RetirementSettings CreateRetirementSettings()
+        {
+            var settings = new RetirementSettings
+            {
+                TargetInvestedCents = 10000000,
+                TargetStocksCents = 0,
+                StockAnnualReturnPercentage = 0m,
+                BondAnnualReturnPercentage = 0m,
+                UsInflationPercentage = 0m,
+                EmergencyRunwayTargetYears = 60
+            };
+            settings.EnsurePlanningCollections();
+            foreach (var reserve in settings.Reserves)
+            {
+                reserve.CurrentCents = 0;
+                reserve.TargetCents = 0;
+                reserve.MonthlyCapCents = 0;
+                reserve.StartAfterMonths = 0;
+            }
+            settings.MonthlyIncomes[0].MonthlyAmountCents = 0;
+            return settings;
+        }
+
         private static ScenarioDocument CreateReadyDocument()
         {
             var document = StarterScenarioFactory.CreateStarterDocument();
@@ -371,6 +457,14 @@ namespace Cashflow.Windows.Tests
             if (!condition)
             {
                 throw new InvalidOperationException("La condición esperada no se cumplió.");
+            }
+        }
+
+        private static void Near(double expected, double actual, double tolerance = 0.001d)
+        {
+            if (Math.Abs(expected - actual) > tolerance)
+            {
+                throw new InvalidOperationException($"Esperado: {expected}. Obtenido: {actual}.");
             }
         }
     }

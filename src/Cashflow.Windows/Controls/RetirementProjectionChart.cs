@@ -17,10 +17,12 @@ namespace Cashflow.Windows.Controls
         private bool _isPanning;
         private Point _panStart;
         private Vector _panOrigin;
+        private RetirementProjectionPoint? _selectedPoint;
 
         public void ShowProjection(RetirementProjection projection)
         {
             _projection = projection;
+            _selectedPoint = null;
             InvalidateVisual();
         }
 
@@ -31,13 +33,18 @@ namespace Cashflow.Windows.Controls
             {
                 return;
             }
+            if (e.Delta < 0 && _zoom <= 1d)
+            {
+                return;
+            }
             const double zoomStep = 1.12d;
             var cursor = e.GetPosition(this);
             var contentPoint = new Point((cursor.X - _panOffset.X) / _zoom, (cursor.Y - _panOffset.Y) / _zoom);
             var factor = e.Delta > 0 ? zoomStep : 1d / zoomStep;
-            var nextZoom = Math.Max(0.55d, Math.Min(2.25d, _zoom * factor));
+            var nextZoom = Math.Max(1d, Math.Min(2.25d, _zoom * factor));
             _zoom = nextZoom;
             _panOffset = cursor - new Point(contentPoint.X * _zoom, contentPoint.Y * _zoom);
+            CoercePan();
             InvalidateVisual();
             e.Handled = true;
         }
@@ -45,7 +52,7 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
-            if (_projection == null) return;
+            if (_projection == null || _zoom <= 1d) return;
             _isPanning = true;
             _panStart = e.GetPosition(this);
             _panOrigin = _panOffset;
@@ -59,6 +66,7 @@ namespace Cashflow.Windows.Controls
             base.OnMouseMove(e);
             if (!_isPanning || e.RightButton != MouseButtonState.Pressed) return;
             _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+            CoercePan();
             InvalidateVisual();
             e.Handled = true;
         }
@@ -78,6 +86,50 @@ namespace Cashflow.Windows.Controls
             base.OnLostMouseCapture(e);
             _isPanning = false;
             Cursor = Cursors.Arrow;
+        }
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            if (_projection == null || _projection.Points.Count == 0 || ActualWidth < 300d || ActualHeight < 180d)
+            {
+                return;
+            }
+
+            var plot = new Rect(66, 24, Math.Max(1, ActualWidth - 92), Math.Max(1, ActualHeight - 72));
+            var maximumYear = Math.Max(1d, _projection.Points.Max(point => point.Year));
+            var maximumValue = Math.Max(_projection.TargetRealUsd, _projection.Points.Max(point => point.TotalRealUsd));
+            maximumValue = Math.Max(1d, maximumValue * 1.08d);
+            var cursor = ToContentPoint(e.GetPosition(this));
+            if (!plot.Contains(cursor))
+            {
+                return;
+            }
+
+            RetirementProjectionPoint? nearest = null;
+            var nearestDistance = double.MaxValue;
+            foreach (var point in _projection.Points)
+            {
+                var positions = new[]
+                {
+                    Map(point, item => item.TotalRealUsd, plot, maximumYear, maximumValue),
+                    Map(point, item => item.StocksRealUsd, plot, maximumYear, maximumValue),
+                    Map(point, item => item.BondsRealUsd, plot, maximumYear, maximumValue)
+                };
+                var distance = positions.Min(position => (position - cursor).Length);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearest = point;
+                }
+            }
+
+            if (nearest != null && nearestDistance <= 14d / _zoom)
+            {
+                _selectedPoint = nearest;
+                InvalidateVisual();
+                e.Handled = true;
+            }
         }
 
         protected override void OnRender(DrawingContext context)
@@ -102,8 +154,51 @@ namespace Cashflow.Windows.Controls
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.BondsRealUsd, Color.FromRgb(241, 185, 85), 1.7);
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.StocksRealUsd, Color.FromRgb(91, 141, 239), 1.9);
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.TotalRealUsd, Color.FromRgb(24, 191, 162), 3.1);
+            DrawSelection(context, plot, maximumYear, maximumValue);
             DrawLegend(context, plot);
             context.Pop();
+            DrawSelectionCard(context);
+        }
+
+        private void DrawSelection(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
+        {
+            if (_selectedPoint == null)
+            {
+                return;
+            }
+            var total = Map(_selectedPoint, point => point.TotalRealUsd, plot, maximumYear, maximumValue);
+            var stocks = Map(_selectedPoint, point => point.StocksRealUsd, plot, maximumYear, maximumValue);
+            var bonds = Map(_selectedPoint, point => point.BondsRealUsd, plot, maximumYear, maximumValue);
+            context.DrawLine(
+                new Pen(new SolidColorBrush(Color.FromArgb(150, 174, 188, 209)), 1d) { DashStyle = DashStyles.Dash },
+                new Point(total.X, plot.Top),
+                new Point(total.X, plot.Bottom));
+            var outline = new Pen(Brushes.White, 1d);
+            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(24, 191, 162)), outline, total, 5d, 5d);
+            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(91, 141, 239)), outline, stocks, 4d, 4d);
+            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(241, 185, 85)), outline, bonds, 4d, 4d);
+        }
+
+        private void DrawSelectionCard(DrawingContext context)
+        {
+            if (_selectedPoint == null)
+            {
+                return;
+            }
+            var width = Math.Min(286d, Math.Max(220d, ActualWidth - 24d));
+            var origin = new Point(Math.Max(12d, ActualWidth - width - 12d), 12d);
+            context.DrawRoundedRectangle(
+                new SolidColorBrush(Color.FromArgb(244, 19, 31, 49)),
+                new Pen(new SolidColorBrush(Color.FromRgb(54, 73, 102)), 1d),
+                new Rect(origin.X, origin.Y, width, 67d),
+                9d,
+                9d);
+            var period = _selectedPoint.Month == 0
+                ? "HOY"
+                : $"MES {_selectedPoint.Month} · AÑO {_selectedPoint.Year:0.#}";
+            DrawText(context, period, 9, FontWeights.Bold, Color.FromRgb(100, 228, 200), new Point(origin.X + 11d, origin.Y + 8d));
+            DrawText(context, $"Total  {ExactMoney(_selectedPoint.TotalRealUsd)}", 11, FontWeights.SemiBold, Color.FromRgb(231, 237, 247), new Point(origin.X + 11d, origin.Y + 25d));
+            DrawText(context, $"Acciones {ExactMoney(_selectedPoint.StocksRealUsd)}   ·   Bonos {ExactMoney(_selectedPoint.BondsRealUsd)}", 9, FontWeights.Normal, Color.FromRgb(174, 188, 209), new Point(origin.X + 11d, origin.Y + 45d));
         }
 
         private void DrawGrid(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
@@ -241,6 +336,24 @@ namespace Cashflow.Windows.Controls
             if (amount >= 1000000d) return $"${amount / 1000000d:0.#}M";
             if (amount >= 1000d) return $"${amount / 1000d:0.#}k";
             return $"${amount:0}";
+        }
+
+        private static string ExactMoney(double amount) =>
+            amount.ToString("N2", CultureInfo.GetCultureInfo("es-AR")) + " USD";
+
+        private Point ToContentPoint(Point point) =>
+            new Point((point.X - _panOffset.X) / _zoom, (point.Y - _panOffset.Y) / _zoom);
+
+        private void CoercePan()
+        {
+            if (_zoom <= 1d)
+            {
+                _zoom = 1d;
+                _panOffset = default;
+                return;
+            }
+            _panOffset.X = Math.Max(ActualWidth * (1d - _zoom), Math.Min(0d, _panOffset.X));
+            _panOffset.Y = Math.Max(ActualHeight * (1d - _zoom), Math.Min(0d, _panOffset.Y));
         }
 
         private void DrawCenteredText(DrawingContext context, string text, double size, Color color)

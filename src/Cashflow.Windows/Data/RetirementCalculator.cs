@@ -15,15 +15,16 @@ namespace Cashflow.Windows.Data
 
             var monthlyIncome = settings.MonthlyIncomes.Sum(income => ToDollars(income.MonthlyAmountCents));
             var ordinaryExpenses = ToDollars(settings.OrdinaryMonthlyExpensesCents);
+            var vacationExpenses = ToDollars(settings.AnnualVacationExpensesCents) / 12d;
             var musicExpense = ToDollars(settings.MusicSessionMonthlyExpenseCents);
             var extraExpense = ToDollars(settings.ExtraMonthlyExpensesCents);
-            var reserveGoals = CalculateReserveGoals(settings, monthlyIncome, ordinaryExpenses, musicExpense, extraExpense);
+            var reserveGoals = CalculateReserveGoals(settings, monthlyIncome, ordinaryExpenses, vacationExpenses, musicExpense, extraExpense);
 
-            var allocation = (double)settings.StockAllocationPercentage / 100d;
             var stocks = ToDollars(settings.InitialStocksCents);
             var bonds = ToDollars(settings.InitialBondsCents);
             var initial = stocks + bonds;
             var target = ToDollars(settings.TargetInvestedCents);
+            var stockTarget = ToDollars(settings.TargetStocksCents ?? 0);
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
             var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
@@ -42,7 +43,7 @@ namespace Cashflow.Windows.Data
                 inflationFactor *= 1d + inflationMonthlyRate;
 
                 var extra = month <= settings.ExtraExpenseMonths ? extraExpense : 0d;
-                var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - musicExpense - extra);
+                var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extra);
                 foreach (var reserve in reserves)
                 {
                     var reserved = AllocateReserve(
@@ -56,8 +57,10 @@ namespace Cashflow.Windows.Data
                     available -= reserved;
                 }
 
-                stocks += available * allocation;
-                bonds += available * (1d - allocation);
+                var stockTargetNominal = stockTarget * inflationFactor;
+                var stockContribution = Math.Min(available, Math.Max(0d, stockTargetNominal - stocks));
+                stocks += stockContribution;
+                bonds += available - stockContribution;
                 contributions += available;
 
                 var realTotal = (stocks + bonds) / inflationFactor;
@@ -82,11 +85,13 @@ namespace Cashflow.Windows.Data
                 MonthsToTarget = reachedMonth,
                 EstimatedTargetDate = reachedMonth.HasValue ? DateTime.Today.AddMonths(reachedMonth.Value) : (DateTime?)null,
                 TotalMonthlyIncomeUsd = monthlyIncome,
-                MonthlySurplusDuringExtraExpenses = monthlyIncome - ordinaryExpenses - musicExpense - extraExpense,
-                MonthlySurplusAfterExtraExpenses = monthlyIncome - ordinaryExpenses - musicExpense,
+                MonthlyVacationProrationUsd = vacationExpenses,
+                MonthlySurplusDuringExtraExpenses = monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extraExpense,
+                MonthlySurplusAfterExtraExpenses = monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense,
                 MonthlyWithdrawalRealUsd = monthlyWithdrawalReal,
                 MonthlyWithdrawalNominalAtTargetUsd = monthlyWithdrawalReal * targetInflationFactor,
                 TargetRealUsd = target,
+                StockTargetRealUsd = stockTarget,
                 TargetNominalAtGoalUsd = target * targetInflationFactor,
                 FinalStocksRealUsd = finalPoint.StocksRealUsd,
                 FinalBondsRealUsd = finalPoint.BondsRealUsd,
@@ -103,6 +108,7 @@ namespace Cashflow.Windows.Data
             RetirementSettings settings,
             double monthlyIncome,
             double ordinaryExpenses,
+            double vacationExpenses,
             double musicExpense,
             double extraExpense)
         {
@@ -119,7 +125,7 @@ namespace Cashflow.Windows.Data
             for (var month = 1; month <= maximumMonths && states.Any(state => state.Target > state.Current); month++)
             {
                 var extra = month <= settings.ExtraExpenseMonths ? extraExpense : 0d;
-                var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - musicExpense - extra);
+                var available = Math.Max(0d, monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extra);
                 foreach (var state in states)
                 {
                     var reserved = AllocateReserve(
@@ -159,7 +165,8 @@ namespace Cashflow.Windows.Data
             var bonds = ToDollars(settings.InitialBondsCents);
             var liquidReserves = settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
             var initialLiquidReserves = liquidReserves;
-            var ordinaryExpense = ToDollars(settings.OrdinaryMonthlyExpensesCents);
+            var ordinaryExpense = ToDollars(settings.OrdinaryMonthlyExpensesCents) +
+                ToDollars(settings.AnnualVacationExpensesCents) / 12d;
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
             var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
@@ -208,6 +215,8 @@ namespace Cashflow.Windows.Data
                 AddRunwayPoint(points, month, liquidReserves, bonds, stocks, monthlyExpense);
             }
 
+            var targetMonths = settings.EmergencyRunwayTargetYears * 12;
+            var sustainableExpense = FindSustainableMonthlyExpense(settings, targetMonths);
             return new RetirementRunway
             {
                 MonthsCovered = failureMonth.HasValue ? failureMonth.Value - 1 : maximumMonths,
@@ -217,16 +226,83 @@ namespace Cashflow.Windows.Data
                 InitialLiquidReservesUsd = initialLiquidReserves,
                 InitialInvestedUsd = ToDollars(settings.InitialStocksCents + settings.InitialBondsCents),
                 InitialMonthlyExpenseUsd = ordinaryExpense,
+                TargetYears = settings.EmergencyRunwayTargetYears,
+                SustainableMonthlyExpenseUsd = sustainableExpense,
+                RequiredMonthlyReductionUsd = Math.Max(0d, ordinaryExpense - sustainableExpense),
                 ReservesExhaustedMonth = reservesExhaustedMonth,
                 InvestmentsUsedMonth = investmentsUsedMonth,
                 Points = points
             };
         }
 
+        private static double FindSustainableMonthlyExpense(RetirementSettings settings, int targetMonths)
+        {
+            var initialAssets = ToDollars(settings.InitialStocksCents) +
+                ToDollars(settings.InitialBondsCents) +
+                settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
+            if (initialAssets <= 0d || targetMonths <= 0)
+            {
+                return 0d;
+            }
+
+            var low = 0d;
+            var high = initialAssets * 2d;
+            for (var iteration = 0; iteration < 80; iteration++)
+            {
+                var candidate = (low + high) / 2d;
+                if (CanCoverForMonths(settings, candidate, targetMonths))
+                {
+                    low = candidate;
+                }
+                else
+                {
+                    high = candidate;
+                }
+            }
+            return low;
+        }
+
+        private static bool CanCoverForMonths(RetirementSettings settings, double baseMonthlyExpense, int months)
+        {
+            var stocks = ToDollars(settings.InitialStocksCents);
+            var bonds = ToDollars(settings.InitialBondsCents);
+            var reserves = settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
+            var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
+            var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
+            var inflationMonthlyRate = MonthlyEquivalent(settings.UsInflationPercentage);
+            var inflationFactor = 1d;
+
+            for (var month = 1; month <= months; month++)
+            {
+                stocks *= 1d + stockMonthlyRate;
+                bonds *= 1d + bondMonthlyRate;
+                inflationFactor *= 1d + inflationMonthlyRate;
+                var expense = baseMonthlyExpense * inflationFactor;
+                if (reserves + stocks + bonds + 0.000001d < expense)
+                {
+                    return false;
+                }
+
+                Spend(ref reserves, ref expense);
+                if (settings.BondAnnualReturnPercentage <= settings.StockAnnualReturnPercentage)
+                {
+                    Spend(ref bonds, ref expense);
+                    Spend(ref stocks, ref expense);
+                }
+                else
+                {
+                    Spend(ref stocks, ref expense);
+                    Spend(ref bonds, ref expense);
+                }
+            }
+            return true;
+        }
+
         private static void Validate(RetirementSettings settings)
         {
             if (settings.InitialStocksCents < 0 || settings.InitialBondsCents < 0 ||
-                settings.OrdinaryMonthlyExpensesCents < 0 || settings.MusicSessionMonthlyExpenseCents < 0 ||
+                settings.OrdinaryMonthlyExpensesCents < 0 || settings.AnnualVacationExpensesCents < 0 ||
+                settings.MusicSessionMonthlyExpenseCents < 0 ||
                 settings.ExtraMonthlyExpensesCents < 0 ||
                 settings.MonthlyIncomes.Any(income => income.MonthlyAmountCents < 0) ||
                 settings.Reserves.Any(reserve => reserve.CurrentCents < 0 || reserve.TargetCents < 0 || reserve.MonthlyCapCents < 0))
@@ -237,6 +313,11 @@ namespace Cashflow.Windows.Data
             {
                 throw new ArgumentException("El objetivo invertido debe ser mayor que cero.");
             }
+            if (!settings.TargetStocksCents.HasValue || settings.TargetStocksCents.Value < 0 ||
+                settings.TargetStocksCents.Value > settings.TargetInvestedCents)
+            {
+                throw new ArgumentException("El objetivo en acciones debe estar entre cero y el objetivo invertido total.");
+            }
             if (settings.ExtraExpenseMonths < 0 || settings.ExtraExpenseMonths > MaximumProjectionYears * 12)
             {
                 throw new ArgumentException("La duración de gastos extra debe estar entre 0 y 1200 meses.");
@@ -245,7 +326,10 @@ namespace Cashflow.Windows.Data
             {
                 throw new ArgumentException("El inicio de una reserva debe estar entre 0 y 1200 meses.");
             }
-            ValidatePercentage(settings.StockAllocationPercentage, 0m, 100m, "La proporción de acciones");
+            if (settings.EmergencyRunwayTargetYears < 1 || settings.EmergencyRunwayTargetYears > MaximumProjectionYears)
+            {
+                throw new ArgumentException("El horizonte de autonomía debe estar entre 1 y 100 años.");
+            }
             ValidatePercentage(settings.StockAnnualReturnPercentage, -99.99m, 100m, "El retorno de acciones");
             ValidatePercentage(settings.BondAnnualReturnPercentage, -99.99m, 100m, "El retorno de bonos");
             ValidatePercentage(settings.UsInflationPercentage, -99.99m, 100m, "La inflación");
@@ -355,11 +439,13 @@ namespace Cashflow.Windows.Data
         public int? MonthsToTarget { get; set; }
         public DateTime? EstimatedTargetDate { get; set; }
         public double TotalMonthlyIncomeUsd { get; set; }
+        public double MonthlyVacationProrationUsd { get; set; }
         public double MonthlySurplusDuringExtraExpenses { get; set; }
         public double MonthlySurplusAfterExtraExpenses { get; set; }
         public double MonthlyWithdrawalRealUsd { get; set; }
         public double MonthlyWithdrawalNominalAtTargetUsd { get; set; }
         public double TargetRealUsd { get; set; }
+        public double StockTargetRealUsd { get; set; }
         public double TargetNominalAtGoalUsd { get; set; }
         public double FinalStocksRealUsd { get; set; }
         public double FinalBondsRealUsd { get; set; }
@@ -403,6 +489,9 @@ namespace Cashflow.Windows.Data
         public double InitialLiquidReservesUsd { get; set; }
         public double InitialInvestedUsd { get; set; }
         public double InitialMonthlyExpenseUsd { get; set; }
+        public int TargetYears { get; set; }
+        public double SustainableMonthlyExpenseUsd { get; set; }
+        public double RequiredMonthlyReductionUsd { get; set; }
         public int? ReservesExhaustedMonth { get; set; }
         public int? InvestmentsUsedMonth { get; set; }
         public IReadOnlyList<RetirementRunwayPoint> Points { get; set; } = Array.Empty<RetirementRunwayPoint>();

@@ -170,15 +170,18 @@ namespace Cashflow.Windows
             InitialStocksBox.Text = FormatMoneyInput(settings.InitialStocksCents);
             InitialBondsBox.Text = FormatMoneyInput(settings.InitialBondsCents);
             OrdinaryExpensesBox.Text = FormatMoneyInput(settings.OrdinaryMonthlyExpensesCents);
+            AnnualVacationExpensesBox.Text = FormatMoneyInput(settings.AnnualVacationExpensesCents);
+            UpdateVacationProration(settings.AnnualVacationExpensesCents);
             MusicSessionExpenseBox.Text = FormatMoneyInput(settings.MusicSessionMonthlyExpenseCents);
             ExtraExpensesBox.Text = FormatMoneyInput(settings.ExtraMonthlyExpensesCents);
             ExtraMonthsBox.Text = settings.ExtraExpenseMonths.ToString(CultureInfo.CurrentCulture);
             TargetInvestedBox.Text = FormatMoneyInput(settings.TargetInvestedCents);
-            StockAllocationBox.Text = FormatInput(settings.StockAllocationPercentage);
+            StockTargetBox.Text = FormatMoneyInput(settings.TargetStocksCents ?? 0);
             StockReturnBox.Text = FormatInput(settings.StockAnnualReturnPercentage);
             BondReturnBox.Text = FormatInput(settings.BondAnnualReturnPercentage);
             WithdrawalRateBox.Text = FormatInput(settings.WithdrawalRatePercentage);
             InflationBox.Text = FormatInput(settings.UsInflationPercentage);
+            RunwayTargetYearsBox.Text = settings.EmergencyRunwayTargetYears.ToString(CultureInfo.CurrentCulture);
             BuildIncomeEditors();
             BuildReserveEditors();
         }
@@ -335,6 +338,7 @@ namespace Cashflow.Windows
             if (!TryMoney(InitialStocksBox.Text, out var initialStocks) ||
                 !TryMoney(InitialBondsBox.Text, out var initialBonds) ||
                 !TryMoney(OrdinaryExpensesBox.Text, out var ordinary) ||
+                !TryMoney(AnnualVacationExpensesBox.Text, out var annualVacation) ||
                 !TryMoney(MusicSessionExpenseBox.Text, out var musicSession) ||
                 !TryMoney(ExtraExpensesBox.Text, out var extra))
             {
@@ -344,14 +348,19 @@ namespace Cashflow.Windows
             {
                 return ValidationError("El objetivo invertido debe ser mayor que cero.", showErrors);
             }
+            if (!TryMoney(StockTargetBox.Text, out var stockTarget) || stockTarget > target)
+            {
+                return ValidationError("El objetivo en acciones debe estar entre cero y el objetivo invertido total.", showErrors);
+            }
             if (!int.TryParse(ExtraMonthsBox.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var extraMonths) ||
                 extraMonths < 0 || extraMonths > RetirementCalculator.MaximumProjectionYears * 12)
             {
                 return ValidationError("Los meses de gasto extra deben ser un entero entre 0 y 1200.", showErrors);
             }
-            if (!TryRange(StockAllocationBox.Text, 0m, 100m, out var stockAllocation))
+            if (!int.TryParse(RunwayTargetYearsBox.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var runwayTargetYears) ||
+                runwayTargetYears < 1 || runwayTargetYears > RetirementCalculator.MaximumProjectionYears)
             {
-                return ValidationError("La proporción de acciones debe estar entre 0% y 100%.", showErrors);
+                return ValidationError("El horizonte de autonomía debe ser un entero entre 1 y 100 años.", showErrors);
             }
             if (!TryRange(StockReturnBox.Text, -99.99m, 100m, out var stockReturn) ||
                 !TryRange(BondReturnBox.Text, -99.99m, 100m, out var bondReturn))
@@ -386,6 +395,7 @@ namespace Cashflow.Windows
             settings.InitialBondsCents = initialBonds;
             settings.MonthlyIncomeCents = 0;
             settings.OrdinaryMonthlyExpensesCents = ordinary;
+            settings.AnnualVacationExpensesCents = annualVacation;
             settings.MusicSessionMonthlyExpenseCents = musicSession;
             settings.ExtraMonthlyExpensesCents = extra;
             settings.ExtraExpenseMonths = extraMonths;
@@ -398,11 +408,16 @@ namespace Cashflow.Windows
             settings.VacationReserveStartAfterMonths = 0;
             settings.VacationReserveMonthlyCapCents = 0;
             settings.TargetInvestedCents = target;
-            settings.StockAllocationPercentage = stockAllocation;
+            settings.TargetStocksCents = stockTarget;
+            settings.StockAllocationPercentage = target > 0
+                ? decimal.Round(stockTarget * 100m / target, 4, MidpointRounding.AwayFromZero)
+                : 0m;
             settings.StockAnnualReturnPercentage = stockReturn;
             settings.BondAnnualReturnPercentage = bondReturn;
             settings.UsInflationPercentage = inflation;
             settings.WithdrawalRatePercentage = withdrawal;
+            settings.EmergencyRunwayTargetYears = runwayTargetYears;
+            UpdateVacationProration(annualVacation);
             return true;
         }
 
@@ -483,8 +498,8 @@ namespace Cashflow.Windows
 
             StocksResultText.Text = FormatMoney(projection.FinalStocksRealUsd);
             BondsResultText.Text = FormatMoney(projection.FinalBondsRealUsd);
-            AllocationText.Text = $"{_document.Retirement.StockAllocationPercentage:0.##}% de cada aporte";
-            BondAllocationText.Text = $"{100m - _document.Retirement.StockAllocationPercentage:0.##}% de cada aporte";
+            AllocationText.Text = "Objetivo: " + FormatMoney(projection.StockTargetRealUsd);
+            BondAllocationText.Text = "Reciben aportes después de completar acciones";
             ContributionsText.Text = "Aportes nuevos: " + FormatMoney(projection.TotalNewContributionsUsd);
             GrowthText.Text = "Rendimiento nominal: " + FormatMoney(projection.TotalNominalGrowthUsd);
 
@@ -530,6 +545,17 @@ namespace Cashflow.Windows
                 : "acciones antes que bonos";
             RunwayAssetsText.Text =
                 $"Inicio: {FormatMoney(runway.InitialLiquidReservesUsd)} líquidos + {FormatMoney(runway.InitialInvestedUsd)} invertidos · orden: reservas, {firstInvestment}.";
+            if (runway.RequiredMonthlyReductionUsd > 0.005d)
+            {
+                RunwayAdjustmentText.Text =
+                    $"Para cubrir {runway.TargetYears} años, reducí al menos {FormatMoney(runway.RequiredMonthlyReductionUsd)} por mes, hasta {FormatMoney(runway.SustainableMonthlyExpenseUsd)}.";
+            }
+            else
+            {
+                var margin = Math.Max(0d, runway.SustainableMonthlyExpenseUsd - runway.InitialMonthlyExpenseUsd);
+                RunwayAdjustmentText.Text =
+                    $"Tus gastos ya cubren {runway.TargetYears} años. Margen mensual estimado: {FormatMoney(margin)}.";
+            }
             RunwayChart.ShowRunway(runway);
         }
 
@@ -538,7 +564,16 @@ namespace Cashflow.Windows
             if (sender is TextBox textBox && TryMoney(textBox.Text, out var cents))
             {
                 textBox.Text = FormatMoneyInput(cents);
+                if (ReferenceEquals(textBox, AnnualVacationExpensesBox))
+                {
+                    UpdateVacationProration(cents);
+                }
             }
+        }
+
+        private void UpdateVacationProration(long annualCents)
+        {
+            VacationMonthlyProrationText.Text = FormatMoney((double)RetirementSettings.FromCents(annualCents) / 12d);
         }
 
         private static string BuildReserveStatus(RetirementReserveGoal goal)

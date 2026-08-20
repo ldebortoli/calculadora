@@ -11,6 +11,7 @@ namespace Cashflow.Windows.Data
         public long InitialBondsCents { get; set; }
         public long MonthlyIncomeCents { get; set; }
         public long OrdinaryMonthlyExpensesCents { get; set; }
+        public long AnnualVacationExpensesCents { get; set; }
         public long MusicSessionMonthlyExpenseCents { get; set; }
         public long ExtraMonthlyExpensesCents { get; set; }
         public int ExtraExpenseMonths { get; set; }
@@ -28,10 +29,12 @@ namespace Cashflow.Windows.Data
         public List<RetirementReserveSettings> Reserves { get; set; } = new List<RetirementReserveSettings>();
 
         public long TargetInvestedCents { get; set; } = 50000000;
+        public long? TargetStocksCents { get; set; }
         public decimal StockAllocationPercentage { get; set; } = 80m;
         public decimal StockAnnualReturnPercentage { get; set; } = 10m;
         public decimal BondAnnualReturnPercentage { get; set; } = 4m;
         public decimal WithdrawalRatePercentage { get; set; } = 3m;
+        public int EmergencyRunwayTargetYears { get; set; } = 60;
 
         public decimal UsInflationPercentage { get; set; } = 3.36m;
         public DateTimeOffset? InflationPeriod { get; set; } = new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
@@ -187,6 +190,14 @@ namespace Cashflow.Windows.Data
                     reserve.Name = "Reserva";
                     changed = true;
                 }
+            }
+            if (!TargetStocksCents.HasValue)
+            {
+                TargetStocksCents = (long)Math.Round(
+                    TargetInvestedCents * StockAllocationPercentage / 100m,
+                    0,
+                    MidpointRounding.AwayFromZero);
+                changed = true;
             }
 
             return changed;

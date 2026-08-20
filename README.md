@@ -24,6 +24,7 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 - Grafo propio del anexo y dos rankings separados: sin pasar por pesos y con pesos bancarizados.
 - Actualización periódica y fechada de dólar blue/oficial, con separación visual entre datos de internet y datos manuales.
 - Estimador de jubilación con múltiples ingresos y reservas, gasto anual de vacaciones prorrateado, aportes secuenciales a acciones y bonos, calendario de objetivos y autonomía de emergencia.
+- Cada reserva puede comenzar en un mes definido o después de alcanzar el objetivo de jubilación; la proyección continúa hasta completar ambos.
 - Selector global persistente para recalcular toda Jubilación en dólares ajustados por inflación o en valores nominales sin inflación.
 - Gráficos de Jubilación ajustados al tamaño disponible, con ampliación desde 100%, paneo solo al ampliar y lectura exacta al seleccionar puntos.
 - Sin cuentas, servidores ni envio de datos.

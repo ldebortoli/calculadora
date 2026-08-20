@@ -36,7 +36,8 @@ namespace Cashflow.Windows.Tests
                 RetirementFundsStocksBeforeBonds();
                 RetirementCalculatesSixtyYearSustainableExpense();
                 RetirementInflationModeChangesRunway();
-                Console.WriteLine("Resultado: 19 correctas, 0 fallidas.");
+                RetirementCompletesDeferredReservesAfterGoal();
+                Console.WriteLine("Resultado: 20 correctas, 0 fallidas.");
                 return 0;
             }
             catch (Exception exception)
@@ -416,6 +417,25 @@ namespace Cashflow.Windows.Tests
             True(adjusted.Runway.UsesInflationAdjustment);
             Equal(12, nominal.Runway.MonthsCovered);
             True(adjusted.Runway.MonthsCovered < nominal.Runway.MonthsCovered);
+        }
+
+        private static void RetirementCompletesDeferredReservesAfterGoal()
+        {
+            var settings = CreateRetirementSettings();
+            settings.MonthlyIncomes[0].MonthlyAmountCents = 10000;
+            settings.TargetInvestedCents = 20000;
+            settings.TargetStocksCents = 0;
+            settings.Reserves[0].Name = "Reserva posterior";
+            settings.Reserves[0].TargetCents = 20000;
+            settings.Reserves[0].StartAfterRetirementGoal = true;
+
+            var projection = new RetirementCalculator().Calculate(settings);
+            var reserve = projection.ReserveGoals.Single(goal => goal.Name == "Reserva posterior");
+
+            Equal(2, projection.MonthsToTarget!.Value);
+            Equal(4, reserve.ReachedMonth!.Value);
+            Equal(4, projection.Points[projection.Points.Count - 1].Month);
+            Near(200d, projection.FinalBondsRealUsd);
         }
 
         private static RetirementSettings CreateRetirementSettings()

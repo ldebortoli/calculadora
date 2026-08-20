@@ -260,6 +260,7 @@ namespace Cashflow.Windows.Data
         public long CurrentCents { get; set; }
         public long TargetCents { get; set; }
         public int StartAfterMonths { get; set; }
+        public bool StartAfterRetirementGoal { get; set; }
         public long MonthlyCapCents { get; set; }
     }
 }

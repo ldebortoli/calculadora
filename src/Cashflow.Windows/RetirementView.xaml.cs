@@ -303,7 +303,34 @@ namespace Cashflow.Windows
                 var timingPair = CreateFieldPair("Empezar en N meses", startBox, "Máximo por mes", capBox);
                 timingPair.Margin = new Thickness(0, 7, 0, 0);
                 root.Children.Add(timingPair);
-                _reserveEditors.Add(new ReserveEditor(reserve, nameBox, currentBox, targetBox, startBox, capBox));
+                var afterRetirementGoalBox = new CheckBox
+                {
+                    Content = "Empezar después de alcanzar el objetivo de jubilación",
+                    IsChecked = reserve.StartAfterRetirementGoal,
+                    Foreground = new SolidColorBrush(Color.FromRgb(194, 205, 222)),
+                    Margin = new Thickness(0, 9, 0, 0)
+                };
+                afterRetirementGoalBox.Checked += (_, _) =>
+                {
+                    startBox.IsEnabled = false;
+                    startBox.Opacity = 0.55d;
+                };
+                afterRetirementGoalBox.Unchecked += (_, _) =>
+                {
+                    startBox.IsEnabled = true;
+                    startBox.Opacity = 1d;
+                };
+                startBox.IsEnabled = !reserve.StartAfterRetirementGoal;
+                startBox.Opacity = reserve.StartAfterRetirementGoal ? 0.55d : 1d;
+                root.Children.Add(afterRetirementGoalBox);
+                _reserveEditors.Add(new ReserveEditor(
+                    reserve,
+                    nameBox,
+                    currentBox,
+                    targetBox,
+                    startBox,
+                    capBox,
+                    afterRetirementGoalBox));
                 ReserveRowsPanel.Children.Add(card);
             }
         }
@@ -424,6 +451,7 @@ namespace Cashflow.Windows
                 reserve.Model.CurrentCents = reserve.CurrentCents;
                 reserve.Model.TargetCents = reserve.TargetCents;
                 reserve.Model.StartAfterMonths = reserve.StartAfterMonths;
+                reserve.Model.StartAfterRetirementGoal = reserve.StartAfterRetirementGoal;
                 reserve.Model.MonthlyCapCents = reserve.MonthlyCapCents;
             }
 
@@ -496,7 +524,14 @@ namespace Cashflow.Windows
                 {
                     return ValidationError("El inicio de cada reserva debe ser un entero entre 0 y 1200 meses.", showErrors);
                 }
-                reserves.Add(new ReserveInput(editor.Model, name, current, target, start, cap));
+                reserves.Add(new ReserveInput(
+                    editor.Model,
+                    name,
+                    current,
+                    target,
+                    start,
+                    cap,
+                    editor.AfterRetirementGoalBox.IsChecked == true));
             }
             return true;
         }
@@ -628,7 +663,12 @@ namespace Cashflow.Windows
                     ? "completa hoy"
                     : $"completa en {goal.EstimatedCompletionDate!.Value.ToString("MMM yyyy", MoneyCulture)}"
                 : "pendiente después de 100 años";
-            return $"{goal.Name}: {FormatMoney(goal.FinalUsd)} / {FormatMoney(goal.TargetUsd)} · {timing}";
+            var start = goal.StartAfterRetirementGoal
+                ? "empieza después del objetivo de jubilación"
+                : goal.StartAfterMonths > 0
+                    ? $"empieza en {goal.StartAfterMonths} meses"
+                    : "empieza ahora";
+            return $"{goal.Name}: {FormatMoney(goal.FinalUsd)} / {FormatMoney(goal.TargetUsd)} · {start} · {timing}";
         }
 
         private void UpdateInflationStatus()
@@ -746,7 +786,8 @@ namespace Cashflow.Windows
                 TextBox currentBox,
                 TextBox targetBox,
                 TextBox startBox,
-                TextBox capBox)
+                TextBox capBox,
+                CheckBox afterRetirementGoalBox)
             {
                 Model = model;
                 NameBox = nameBox;
@@ -754,6 +795,7 @@ namespace Cashflow.Windows
                 TargetBox = targetBox;
                 StartBox = startBox;
                 CapBox = capBox;
+                AfterRetirementGoalBox = afterRetirementGoalBox;
             }
 
             public RetirementReserveSettings Model { get; }
@@ -762,6 +804,7 @@ namespace Cashflow.Windows
             public TextBox TargetBox { get; }
             public TextBox StartBox { get; }
             public TextBox CapBox { get; }
+            public CheckBox AfterRetirementGoalBox { get; }
         }
 
         private sealed class IncomeInput
@@ -786,7 +829,8 @@ namespace Cashflow.Windows
                 long currentCents,
                 long targetCents,
                 int startAfterMonths,
-                long monthlyCapCents)
+                long monthlyCapCents,
+                bool startAfterRetirementGoal)
             {
                 Model = model;
                 Name = name;
@@ -794,6 +838,7 @@ namespace Cashflow.Windows
                 TargetCents = targetCents;
                 StartAfterMonths = startAfterMonths;
                 MonthlyCapCents = monthlyCapCents;
+                StartAfterRetirementGoal = startAfterRetirementGoal;
             }
 
             public RetirementReserveSettings Model { get; }
@@ -802,6 +847,7 @@ namespace Cashflow.Windows
             public long TargetCents { get; }
             public int StartAfterMonths { get; }
             public long MonthlyCapCents { get; }
+            public bool StartAfterRetirementGoal { get; }
         }
     }
 }

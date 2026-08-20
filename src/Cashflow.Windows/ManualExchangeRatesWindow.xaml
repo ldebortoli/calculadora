@@ -1,0 +1,41 @@
+<Window x:Class="Cashflow.Windows.ManualExchangeRatesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Valores manuales globales · Ruta Cashflow"
+        Icon="Assets/AppIcon.ico"
+        Width="720"
+        Height="650"
+        MinWidth="600"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="#F3F6FA">
+    <Grid Margin="28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="Valores manuales globales" Foreground="{StaticResource InkBrush}" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="Actualizá cada proveedor una sola vez. Al guardar, la misma cotización se replica en todas sus transiciones equivalentes y en todos los escenarios."
+                       Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" Margin="0,5,0,18" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="RatesPanel" Margin="0,0,8,10" />
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Text="Los valores se guardan solamente en este equipo." Foreground="#697386" FontSize="10" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Cancelar" IsCancel="True" Style="{StaticResource GhostButton}" />
+            <Button Grid.Column="3" Content="Guardar y replicar" Click="Save_Click" IsDefault="True" Style="{StaticResource PrimaryButton}" />
+        </Grid>
+    </Grid>
+</Window>

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Cashflow.Core.Calculation;
 using Cashflow.Core.Models;
@@ -37,7 +38,8 @@ namespace Cashflow.Windows.Tests
                 RetirementCalculatesSixtyYearSustainableExpense();
                 RetirementInflationModeChangesRunway();
                 RetirementCompletesDeferredReservesAfterGoal();
-                Console.WriteLine("Resultado: 20 correctas, 0 fallidas.");
+                RetirementChartsCaptureWheelAtMinimumZoom();
+                Console.WriteLine("Resultado: 21 correctas, 0 fallidas.");
                 return 0;
             }
             catch (Exception exception)
@@ -436,6 +438,43 @@ namespace Cashflow.Windows.Tests
             Equal(4, reserve.ReachedMonth!.Value);
             Equal(4, projection.Points[projection.Points.Count - 1].Month);
             Near(200d, projection.FinalBondsRealUsd);
+        }
+
+        private static void RetirementChartsCaptureWheelAtMinimumZoom()
+        {
+            Exception? chartError = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var projectionChart = new RetirementProjectionChart();
+                    var projectionWheel = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120)
+                    {
+                        RoutedEvent = Mouse.MouseWheelEvent
+                    };
+                    projectionChart.RaiseEvent(projectionWheel);
+                    True(projectionWheel.Handled);
+
+                    var planningChart = new RetirementReserveTimelineChart();
+                    var planningWheel = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120)
+                    {
+                        RoutedEvent = Mouse.MouseWheelEvent
+                    };
+                    planningChart.RaiseEvent(planningWheel);
+                    True(planningWheel.Handled);
+                }
+                catch (Exception exception)
+                {
+                    chartError = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            if (chartError != null)
+            {
+                throw new InvalidOperationException("Los gráficos de Jubilación no retuvieron la rueda en el zoom mínimo: " + chartError.Message);
+            }
         }
 
         private static RetirementSettings CreateRetirementSettings()

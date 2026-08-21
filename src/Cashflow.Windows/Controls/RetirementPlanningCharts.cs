@@ -27,6 +27,7 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
+            e.Handled = true;
             if (!HasChartData || e.Delta == 0)
             {
                 return;
@@ -43,7 +44,6 @@ namespace Cashflow.Windows.Controls
             _panOffset = cursor - new Point(contentPoint.X * _zoom, contentPoint.Y * _zoom);
             CoercePan();
             InvalidateVisual();
-            e.Handled = true;
         }
 
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)

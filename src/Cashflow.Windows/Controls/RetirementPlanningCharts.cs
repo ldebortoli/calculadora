@@ -176,7 +176,8 @@ namespace Cashflow.Windows.Controls
                 return;
             }
             var row = Math.Max(0, Math.Min(_goals.Count - 1, (int)((cursor.Y - plot.Top) / (plot.Height / _goals.Count))));
-            _selectedGoal = _goals[row];
+            var selectedGoal = _goals[row];
+            _selectedGoal = ReferenceEquals(_selectedGoal, selectedGoal) ? null : selectedGoal;
             InvalidateVisual();
             e.Handled = true;
         }
@@ -346,7 +347,8 @@ namespace Cashflow.Windows.Controls
                 return;
             }
             var selectedYear = (cursor.X - plot.Left) / plot.Width * maximumYear;
-            _selectedPoint = _runway.Points.OrderBy(point => Math.Abs(point.Year - selectedYear)).First();
+            var selectedPoint = _runway.Points.OrderBy(point => Math.Abs(point.Year - selectedYear)).First();
+            _selectedPoint = ReferenceEquals(_selectedPoint, selectedPoint) ? null : selectedPoint;
             InvalidateVisual();
             e.Handled = true;
         }

@@ -126,7 +126,7 @@ namespace Cashflow.Windows.Controls
 
             if (nearest != null && nearestDistance <= 14d / _zoom)
             {
-                _selectedPoint = nearest;
+                _selectedPoint = ReferenceEquals(_selectedPoint, nearest) ? null : nearest;
                 InvalidateVisual();
                 e.Handled = true;
             }

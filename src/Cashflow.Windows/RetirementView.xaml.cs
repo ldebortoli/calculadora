@@ -305,10 +305,15 @@ namespace Cashflow.Windows
                 root.Children.Add(timingPair);
                 var afterRetirementGoalBox = new CheckBox
                 {
-                    Content = "Empezar después de alcanzar el objetivo de jubilación",
+                    Content = new TextBlock
+                    {
+                        Text = "Empezar después del objetivo de jubilación",
+                        TextWrapping = TextWrapping.Wrap
+                    },
                     IsChecked = reserve.StartAfterRetirementGoal,
                     Foreground = new SolidColorBrush(Color.FromRgb(194, 205, 222)),
-                    Margin = new Thickness(0, 9, 0, 0)
+                    Margin = new Thickness(0, 9, 0, 0),
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch
                 };
                 afterRetirementGoalBox.Checked += (_, _) =>
                 {

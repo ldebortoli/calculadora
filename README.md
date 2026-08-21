@@ -28,6 +28,7 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 - Selector global persistente para recalcular toda Jubilación en dólares ajustados por inflación o en valores nominales sin inflación.
 - Gráficos de Jubilación ajustados al tamaño disponible, con ampliación desde 100%, paneo solo al ampliar y lectura exacta al seleccionar puntos.
 - La rueda queda capturada mientras el cursor está sobre un gráfico de Jubilación, incluso al alcanzar el zoom mínimo, sin desplazar accidentalmente la página.
+- Los carteles de valores de Jubilación se cierran al volver a seleccionar el mismo punto u objetivo.
 - Sin cuentas, servidores ni envio de datos.
 
 La formula de una transicion es:

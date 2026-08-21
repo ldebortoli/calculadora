@@ -11,8 +11,8 @@
     <AssemblyTitle>Calculadora</AssemblyTitle>
     <Product>Calculadora</Product>
     <Description>Calculadora local de rutas de transferencia, comisiones y conversiones.</Description>
-    <Version>0.9.3</Version>
-    <FileVersion>0.9.3.0</FileVersion>
+    <Version>0.9.4</Version>
+    <FileVersion>0.9.4.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cashflow.Core\Cashflow.Core.csproj" />

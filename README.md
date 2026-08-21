@@ -30,6 +30,7 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 - La rueda queda capturada mientras el cursor está sobre un gráfico de Jubilación, incluso al alcanzar el zoom mínimo, sin desplazar accidentalmente la página.
 - Los carteles de valores de Jubilación se cierran al volver a seleccionar el mismo punto u objetivo.
 - Sin cuentas, servidores ni envio de datos.
+- Dropdowns globales con campo, flecha, lista, selección y estados interactivos adaptados al tema oscuro.
 
 La formula de una transicion es:
 

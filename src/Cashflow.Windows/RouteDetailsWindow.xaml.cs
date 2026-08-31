@@ -14,6 +14,7 @@ namespace Cashflow.Windows
         {
             if (result == null) throw new ArgumentNullException(nameof(result));
             InitializeComponent();
+            WindowTheme.ApplyDarkTitleBar(this);
 
             PathText.Text = result.PathLabel;
             var sourceCurrency = result.Steps.Count > 0 ? result.Steps[0].From.Currency : string.Empty;
@@ -33,14 +34,14 @@ namespace Cashflow.Windows
             content.Children.Add(new TextBlock
             {
                 Text = $"TRAMO {number}",
-                Foreground = new SolidColorBrush(Color.FromRgb(13, 147, 125)),
+                Foreground = new SolidColorBrush(Color.FromRgb(84, 214, 190)),
                 FontSize = 9,
                 FontWeight = FontWeights.Bold
             });
             content.Children.Add(new TextBlock
             {
                 Text = step.Route.Label,
-                Foreground = new SolidColorBrush(Color.FromRgb(35, 48, 71)),
+                Foreground = new SolidColorBrush(Color.FromRgb(231, 237, 247)),
                 FontSize = 16,
                 FontWeight = FontWeights.SemiBold,
                 TextWrapping = TextWrapping.Wrap,
@@ -49,7 +50,7 @@ namespace Cashflow.Windows
             content.Children.Add(new TextBlock
             {
                 Text = $"{step.From.Name} ({step.From.Currency})  →  {step.To.Name} ({step.To.Currency})",
-                Foreground = new SolidColorBrush(Color.FromRgb(102, 115, 136)),
+                Foreground = new SolidColorBrush(Color.FromRgb(150, 165, 188)),
                 FontSize = 10,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 3, 0, 10)
@@ -76,7 +77,7 @@ namespace Cashflow.Windows
                 var reviewed = step.Route.ManualExchangeRateUpdatedAt.HasValue
                     ? step.Route.ManualExchangeRateUpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                     : "sin fecha registrada";
-                AddLine(content, "Origen de la cotización", $"Manual · última revisión: {reviewed}", Color.FromRgb(166, 102, 18));
+                AddLine(content, "Origen de la cotización", $"Manual · última revisión: {reviewed}", Color.FromRgb(241, 185, 85));
             }
             else if (!string.IsNullOrWhiteSpace(step.Route.LiveQuoteKey))
             {
@@ -91,12 +92,12 @@ namespace Cashflow.Windows
             {
                 AddLine(content, "Cargo sobre la salida", FormatMoney(step.OutputFeeAmount, step.To.Currency));
             }
-            AddLine(content, "Neto que pasa al siguiente nodo", FormatMoney(step.OutputAmount, step.To.Currency), Color.FromRgb(13, 147, 125), true);
+            AddLine(content, "Neto que pasa al siguiente nodo", FormatMoney(step.OutputAmount, step.To.Currency), Color.FromRgb(84, 214, 190), true);
 
             return new Border
             {
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(221, 229, 239)),
+                Background = new SolidColorBrush(Color.FromRgb(16, 24, 39)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(42, 56, 82)),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(11),
                 Padding = new Thickness(16, 14, 16, 14),
@@ -118,7 +119,7 @@ namespace Cashflow.Windows
             row.Children.Add(new TextBlock
             {
                 Text = label,
-                Foreground = new SolidColorBrush(Color.FromRgb(105, 117, 137)),
+                Foreground = new SolidColorBrush(Color.FromRgb(150, 165, 188)),
                 FontSize = 10,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 12, 0)
@@ -126,7 +127,7 @@ namespace Cashflow.Windows
             var valueText = new TextBlock
             {
                 Text = value,
-                Foreground = new SolidColorBrush(valueColor ?? Color.FromRgb(48, 61, 83)),
+                Foreground = new SolidColorBrush(valueColor ?? Color.FromRgb(217, 226, 240)),
                 FontSize = 10,
                 FontWeight = bold ? FontWeights.Bold : FontWeights.Normal,
                 TextWrapping = TextWrapping.Wrap

@@ -51,7 +51,7 @@
                     <Button Content="Eliminar escenario" Margin="0,8,0,0" Click="DeleteScenario_Click" Style="{StaticResource DangerButton}" />
                 </StackPanel>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,24,0,16">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,24,-11,16">
                     <StackPanel>
                         <Border Height="1" Background="#263248" Margin="0,0,0,22" />
                         <TextBlock Text="SIMULACIÓN" Foreground="#8090AA" FontSize="10" FontWeight="Bold" Margin="0,0,0,10" />

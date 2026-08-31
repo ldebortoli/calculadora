@@ -241,18 +241,16 @@ namespace Cashflow.Windows
             if (_scenario == null) return;
             if (_document.Scenarios.Count <= 1)
             {
-                MessageBox.Show(this, "Tiene que quedar al menos un escenario.", "Calculadora", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialogWindow.ShowInfo(this, "Tiene que quedar al menos un escenario.", "Calculadora");
                 return;
             }
 
-            var answer = MessageBox.Show(
+            var confirmed = AppDialogWindow.Confirm(
                 this,
                 $"¿Eliminar el escenario “{_scenario.Name}”? Esta acción quita ese grafo y no se puede deshacer desde la aplicación.",
                 "Eliminar escenario",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-            if (answer != MessageBoxResult.Yes ||
+                "Eliminar");
+            if (!confirmed ||
                 !ScenarioDocumentEditor.TryDeleteScenario(_document, _scenario.Id, out var nextScenario) ||
                 nextScenario == null)
             {
@@ -304,7 +302,7 @@ namespace Cashflow.Windows
         {
             if (_scenario == null || _scenario.Nodes.Count < 2)
             {
-                MessageBox.Show(this, "Necesitás al menos dos plataformas para crear una transición.", "Calculadora", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialogWindow.ShowInfo(this, "Necesitás al menos dos plataformas para crear una transición.", "Calculadora");
                 return;
             }
 
@@ -502,13 +500,12 @@ namespace Cashflow.Windows
         private void DeleteNode_Click(object sender, RoutedEventArgs e)
         {
             if (_scenario == null || _selectedNode == null) return;
-            var result = MessageBox.Show(
+            var confirmed = AppDialogWindow.Confirm(
                 this,
                 $"¿Eliminar “{_selectedNode.Name}” y todas sus transiciones?",
                 "Eliminar plataforma",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (result != MessageBoxResult.Yes) return;
+                "Eliminar");
+            if (!confirmed) return;
 
             var id = _selectedNode.Id;
             _scenario.Nodes.Remove(_selectedNode);
@@ -905,7 +902,7 @@ namespace Cashflow.Windows
             }
             catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
             {
-                MessageBox.Show(this, "No se pudo guardar el archivo local. " + exception.Message, "Calculadora", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialogWindow.ShowInfo(this, "No se pudo guardar el archivo local. " + exception.Message, "Calculadora");
             }
         }
 
@@ -1021,7 +1018,7 @@ namespace Cashflow.Windows
 
         private void ShowValidation(string message)
         {
-            MessageBox.Show(this, message, "Revisá los datos", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppDialogWindow.ShowInfo(this, message, "Revisá los datos");
         }
 
         private sealed class FeeApplicationChoice

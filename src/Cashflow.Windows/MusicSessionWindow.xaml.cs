@@ -427,7 +427,7 @@ namespace Cashflow.Windows
         {
             if (show)
             {
-                MessageBox.Show(message, "Revisá los datos", MessageBoxButton.OK, MessageBoxImage.Information);
+        AppDialogWindow.ShowInfo(Window.GetWindow(this), message, "Revisá los datos");
             }
             return false;
         }

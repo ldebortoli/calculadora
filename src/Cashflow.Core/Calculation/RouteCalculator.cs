@@ -35,7 +35,15 @@ namespace Cashflow.Core.Calculation
             Explore(sourceNodeId, initialAmount);
 
             return results
-                .OrderByDescending(result => result.FinalAmount)
+                .OrderByDescending(result =>
+                    string.Equals(result.DestinationCurrency, "ARS", StringComparison.OrdinalIgnoreCase)
+                        ? decimal.Round(result.FinalAmount, 2, MidpointRounding.AwayFromZero)
+                        : result.FinalAmount)
+                .ThenByDescending(result =>
+                    string.Equals(result.DestinationCurrency, "ARS", StringComparison.OrdinalIgnoreCase)
+                        ? result.BinanceUnusedBalance
+                        : 0m)
+                .ThenByDescending(result => result.FinalAmount)
                 .ThenBy(result => result.SourceDebitedAmount)
                 .ThenBy(result => result.Steps.Count)
                 .ToArray();

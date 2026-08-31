@@ -30,6 +30,7 @@ namespace Cashflow.Core.Tests
             Run("Binance descuenta su comision del monto vendido", BinanceFeeIsDeducted);
             Run("El fee de trade y el cargo de salida se aplican en secuencia", TradingAndOutputFeesAreSequential);
             Run("El paso de orden deja visible el remanente", OrderStepLeavesRemainder);
+            Run("El empate en ARS prioriza el remanente de Binance", ArsTiePrefersBinanceRemainder);
             Run("El minimo recibido filtra operaciones pequenas", MinimumOutputFiltersSmallTrades);
             Run("Los limites de monto filtran ofertas", AmountLimitsFilterRoutes);
             Run("El libro calcula precio promedio segun profundidad", OrderBookDepthAffectsRate);
@@ -453,6 +454,57 @@ namespace Cashflow.Core.Tests
             scenario.Nodes.Add(new PlatformNode { Id = "destination", Name = "Destino", Currency = "USD", Kind = NodeKind.Destination });
             scenario.Routes.Add(route);
             return scenario;
+        }
+
+        private static void ArsTiePrefersBinanceRemainder()
+        {
+            var scenario = new CashflowScenario();
+            scenario.Nodes.Add(new PlatformNode { Id = "source", Name = "GrabrFi", Currency = "USD", Kind = NodeKind.Source });
+            scenario.Nodes.Add(new PlatformNode { Id = "binance", Name = "Binance · USDT", Currency = "USDT", Kind = NodeKind.Intermediate });
+            scenario.Nodes.Add(new PlatformNode { Id = "destination", Name = "Cuenta local", Currency = "ARS", Kind = NodeKind.Destination });
+            scenario.Routes.Add(new TransferRoute
+            {
+                Id = "direct",
+                FromNodeId = "source",
+                ToNodeId = "destination",
+                Label = "Directa",
+                ExchangeRate = 100m,
+                InputAmountStep = 2m
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                Id = "to-binance",
+                FromNodeId = "source",
+                ToNodeId = "binance",
+                Label = "Ingreso",
+                ExchangeRate = 1m
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                Id = "without-remainder",
+                FromNodeId = "binance",
+                ToNodeId = "destination",
+                Label = "Sin remanente",
+                ExchangeRate = 100m,
+                InputAmountStep = 1m,
+                FixedFee = 1m,
+                FeeApplication = FeeApplicationMode.ChargeSeparately
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                Id = "with-remainder",
+                FromNodeId = "binance",
+                ToNodeId = "destination",
+                Label = "Con remanente",
+                ExchangeRate = 100m,
+                InputAmountStep = 2m
+            });
+
+            var results = new RouteCalculator().Calculate(scenario, "source", "destination", 11m);
+
+            Equal("with-remainder", results.First().Steps.Last().Route.Id);
+            Equal(1m, results.First().BinanceUnusedBalance);
+            Equal(0m, results.Single(result => result.Steps.Count == 1).BinanceUnusedBalance);
         }
 
         private static CashflowScenario CreateScenario()

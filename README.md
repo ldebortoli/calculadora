@@ -31,6 +31,8 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 - Los carteles de valores de Jubilación se cierran al volver a seleccionar el mismo punto u objetivo.
 - Sin cuentas, servidores ni envio de datos.
 - Dropdowns globales con campo, flecha, lista, selección y estados interactivos adaptados al tema oscuro.
+- Ventanas modales, controles y barras de título adaptados al tema oscuro.
+- Los empates de resultado en ARS priorizan la ruta que conserva más saldo disponible sin usar en Binance.
 
 La formula de una transicion es:
 

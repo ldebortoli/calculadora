@@ -21,6 +21,7 @@ namespace Cashflow.Windows
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             InitializeComponent();
+            WindowTheme.ApplyDarkTitleBar(this);
             ManualExchangeRateSynchronizer.EnsureSynchronized(_document);
             BuildEditors();
         }
@@ -39,8 +40,10 @@ namespace Cashflow.Windows
                     Text = setting.ExchangeRate.ToString("0.########", CultureInfo.CurrentCulture),
                     FontSize = 17,
                     FontWeight = FontWeights.SemiBold,
-                    Background = new SolidColorBrush(Color.FromRgb(255, 247, 232)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(241, 199, 126))
+                    Background = new SolidColorBrush(Color.FromRgb(36, 29, 22)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(140, 103, 48)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(231, 237, 247)),
+                    CaretBrush = Brushes.White
                 };
                 var grid = new Grid();
                 grid.ColumnDefinitions.Add(new ColumnDefinition());
@@ -49,14 +52,14 @@ namespace Cashflow.Windows
                 copy.Children.Add(new TextBlock
                 {
                     Text = setting.ProviderName,
-                    Foreground = new SolidColorBrush(Color.FromRgb(35, 48, 71)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(231, 237, 247)),
                     FontSize = 16,
                     FontWeight = FontWeights.SemiBold
                 });
                 copy.Children.Add(new TextBlock
                 {
                     Text = $"{setting.ToCurrency} por {setting.FromCurrency} · {routes} transición(es) vinculada(s)",
-                    Foreground = new SolidColorBrush(Color.FromRgb(105, 115, 134)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(150, 165, 188)),
                     FontSize = 11,
                     Margin = new Thickness(0, 4, 12, 0)
                 });
@@ -65,7 +68,7 @@ namespace Cashflow.Windows
                     Text = setting.UpdatedAt.HasValue
                         ? "Última revisión: " + setting.UpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                         : "Todavía no tiene una fecha de revisión",
-                    Foreground = new SolidColorBrush(Color.FromRgb(166, 102, 18)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(241, 185, 85)),
                     FontSize = 10,
                     Margin = new Thickness(0, 5, 12, 0)
                 });
@@ -74,8 +77,8 @@ namespace Cashflow.Windows
                 grid.Children.Add(input);
                 RatesPanel.Children.Add(new Border
                 {
-                    Background = Brushes.White,
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(224, 230, 239)),
+                    Background = new SolidColorBrush(Color.FromRgb(16, 24, 39)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 56, 82)),
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(11),
                     Padding = new Thickness(16),
@@ -90,7 +93,7 @@ namespace Cashflow.Windows
                 RatesPanel.Children.Add(new TextBlock
                 {
                     Text = "No hay cotizaciones marcadas como manuales en los escenarios actuales.",
-                    Foreground = new SolidColorBrush(Color.FromRgb(105, 115, 134)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(150, 165, 188)),
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(4, 8, 4, 0)
                 });
@@ -104,7 +107,7 @@ namespace Cashflow.Windows
             {
                 if (!DecimalInputParser.TryParse(editor.Input.Text, out var rate) || rate <= 0m)
                 {
-                    MessageBox.Show(this, $"La cotización de {editor.Setting.ProviderName} debe ser mayor que cero.", "Revisá los valores", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialogWindow.ShowInfo(this, $"La cotización de {editor.Setting.ProviderName} debe ser mayor que cero.", "Revisá los valores");
                     editor.Input.Focus();
                     editor.Input.SelectAll();
                     return;
@@ -133,7 +136,7 @@ namespace Cashflow.Windows
             catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
             {
                 StatusText.Text = "No se pudieron guardar los valores: " + exception.Message;
-                StatusText.Foreground = new SolidColorBrush(Color.FromRgb(180, 35, 56));
+                StatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 154, 168));
             }
         }
 

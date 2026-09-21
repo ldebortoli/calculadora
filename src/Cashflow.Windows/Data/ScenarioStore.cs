@@ -39,8 +39,9 @@ namespace Cashflow.Windows.Data
                         var retirementPlanningUpgraded = document.Retirement.EnsurePlanningCollections();
                         var starterUpgraded = StarterScenarioFactory.UpgradeStarterTemplates(document);
                         var globalFeesUpgraded = StarterScenarioFactory.UpgradeGrabrFiGlobalFees(document);
+                        var binanceWalletRouteUpgraded = StarterScenarioFactory.EnsureBinanceUsdtWalletRoutes(document);
                         var manualRatesUpgraded = ManualExchangeRateSynchronizer.EnsureSynchronized(document);
-                        if (starterUpgraded || globalFeesUpgraded || manualRatesUpgraded ||
+                        if (starterUpgraded || globalFeesUpgraded || binanceWalletRouteUpgraded || manualRatesUpgraded ||
                             retirementMoneyUpgraded ||
                             retirementPlanningUpgraded)
                         {

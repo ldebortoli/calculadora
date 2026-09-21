@@ -76,6 +76,8 @@
                                            Foreground="#C2CCDA" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" LineHeight="17" />
                                 <TextBlock Text="GrabrFi Global mantiene saldo en USDB (valor USD), sin seguro FDIC; su tarjeta actual es virtual. La suscripción de Wallbit Pro no se suma por transferencia: si está bonificada, su costo efectivo es cero. Para efectivo por cueva falta tasa/costo real."
                                            Foreground="#A9B5C8" FontSize="10" TextWrapping="Wrap" Margin="0,9,0,0" LineHeight="16" />
+                                <TextBlock Text="USDC → Binance → USDT también participa. Para seguir hasta wallet externa, seleccioná la transición Binance → wallet, cargá la comisión fija real de retiro y cotización 1, luego Aplicar cambios. Hasta entonces esa ruta queda fuera del ranking."
+                                           Foreground="#FFCE7A" FontSize="10" TextWrapping="Wrap" Margin="0,9,0,0" LineHeight="16" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

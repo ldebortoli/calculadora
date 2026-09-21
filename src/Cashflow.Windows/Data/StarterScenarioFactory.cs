@@ -78,6 +78,43 @@ namespace Cashflow.Windows.Data
             return true;
         }
 
+        public static bool EnsureBinanceUsdtWalletRoutes(ScenarioDocument document)
+        {
+            if (document.BinanceUsdtWalletRouteInitialized)
+            {
+                return false;
+            }
+
+            foreach (var scenario in document.Scenarios)
+            {
+                AddPendingBinanceUsdtWalletRoute(scenario);
+            }
+
+            document.BinanceUsdtWalletRouteInitialized = true;
+            return true;
+        }
+
+        private static void AddPendingBinanceUsdtWalletRoute(CashflowScenario scenario)
+        {
+            var binance = scenario.Nodes.FirstOrDefault(node => node.Name == "Binance · USDT" && node.Currency == "USDT");
+            var wallet = scenario.Nodes.FirstOrDefault(node => node.Name == "Wallet externa · USDT" && node.Currency == "USDT");
+            if (binance == null || wallet == null ||
+                scenario.Routes.Any(route => route.FromNodeId == binance.Id && route.ToNodeId == wallet.Id))
+            {
+                return;
+            }
+
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = binance.Id,
+                ToNodeId = wallet.Id,
+                Label = "Binance → wallet externa · USDT (retiro pendiente)",
+                ExchangeRate = 1m,
+                ExchangeRateConfigured = false,
+                FeeApplication = FeeApplicationMode.DeductFromAmount
+            });
+        }
+
         public static CashflowScenario CreateGlobalComparisonTemplate(string name)
         {
             var scenario = CreateCompleteTemplate(name, startAtWallbit: false);
@@ -145,6 +182,8 @@ namespace Cashflow.Windows.Data
                 PercentageFee = 1.25m,
                 FeeApplication = FeeApplicationMode.ChargeSeparately
             });
+
+            AddPendingBinanceUsdtWalletRoute(scenario);
 
             return scenario;
         }

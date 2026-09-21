@@ -241,6 +241,7 @@ namespace Cashflow.Windows
             SaveScenarioName();
             var scenario = StarterScenarioFactory.CreateGlobalComparisonTemplate($"Comparador Global 2026 · {_document.Scenarios.Count + 1}");
             _document.Scenarios.Add(scenario);
+            StarterScenarioFactory.EnsureBinanceUsdtWalletRoutes(_document);
             ManualExchangeRateSynchronizer.EnsureSynchronized(_document);
             _loading = true;
             ScenarioCombo.ItemsSource = null;

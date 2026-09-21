@@ -2,13 +2,14 @@
 
 Calculadora local de rutas de transferencia. Representa plataformas y cuentas como un grafo dirigido, aplica las comisiones y conversiones de cada tramo, y ordena las alternativas por el importe final que llega a destino.
 
-> Las plantillas GrabrFi y Wallbit Pro incluyen las comisiones y cotizaciones informadas por el usuario el 15 de agosto de 2026. Todos los valores siguen siendo editables y se guardan localmente.
+> Las plantillas originales conservan las condiciones cargadas en agosto de 2026 para no alterar escenarios personales. **Comparador Global 2026** usa la tabla nueva de GrabrFi y las tarifas publicadas de Wallbit Pro al 21 de septiembre de 2026. Todos los valores siguen siendo editables y se guardan localmente.
 
 ## Que incluye este MVP
 
 - Aplicacion nativa para Windows, con icono y AppUserModelID propios.
 - Pantalla de carga grafica de marca y arranque `WinExe` sin consola visible.
 - Escenarios completos con origen GrabrFi y origen Wallbit Pro.
+- Comparador Global 2026 con ambos orígenes y destinos ARS, Interactive Brokers por ACH y wallet externa en USDT.
 - Multiples escenarios guardados en forma local, con creación y eliminación desde la barra lateral.
 - Alta, edicion, borrado y posicionamiento de plataformas/cuentas.
 - Alta, edicion, borrado y activacion de transiciones dirigidas.
@@ -65,7 +66,19 @@ remanente = presupuesto - debito
 
 La comision fija y los topes se expresan en la moneda del nodo de origen. El tipo de cambio indica cuantas unidades de la moneda de destino entrega una unidad neta de la moneda de origen. El monto inicial predeterminado es USD 2.500 y representa el **gasto total máximo**, con comisiones incluidas. En cada tramo, la salida anterior es el presupuesto disponible del siguiente.
 
-## Plantilla GrabrFi
+## Comparador Global 2026
+
+Usá **+ Comparador Global 2026** para crear un escenario nuevo sin modificar los ya guardados. En **Desde** elegí GrabrFi o Wallbit Pro; en **Hasta**, Cuenta local (ARS), Interactive Brokers (USD) o Wallet externa (USDT). La ruta óptima se calcula por destino, no mezcla ARS con USD o USDT. Las cotizaciones manuales a ARS deben revisarse en la app y el botón de mercados actualiza Binance Spot.
+
+- [GrabrFi Global](https://help.grabrfi.com/en/content/full-schedule-of-fees): ACH saliente 0,5% (mínimo USD 1, máximo USD 10); USDC 1% + USD 1; USDT 1,1% + USD 1; retiro ARS USD 5. El saldo es USDB para residentes fuera del EEE y USDC en el EEE; el grafo usa USD como unidad equivalente, no como afirmación de depósito bancario. GrabrFi publica un límite de USD 30.000 por envío y límites diario, mensual y anual adicionales para ACH y stablecoins. Esos límites agregados no se simulan.
+- [Wallbit Pro](https://help.wallbit.io/en/articles/9156314-fees-and-commissions-schedule): ACH saliente 0,5% (mínimo USD 5), USDC 1%, USDT 1,25%; el plan Pro cuesta USD 9 al mes, **no incluidos** en cada simulación. La tarjeta virtual cuesta USD 5 por emisión y las compras fuera de USD tienen 2% de recargo de cambio. GrabrFi Global cobra 1,5% por compras fuera de EE. UU.
+- **Interactive Brokers**: el destino muestra el monto teórico enviado por ACH, pero no garantiza que IBKR acepte la cuenta emisora. [IBKR generalmente rechaza depósitos de terceros](https://www.interactivebrokers.com/en/support/fund-my-account.php); comprobá titularidad, instrucciones de depósito y aceptación con una transferencia pequeña antes de mover el sueldo.
+- **USDT externo**: compara la salida directa por TRON desde cada proveedor. No representa USD billete: faltan la cotización, comisión, disponibilidad y condiciones de la contraparte que entregue efectivo. El comparador no incluye el retiro desde Binance a una wallet externa porque su comisión de red no está confirmada; el saldo en Binance puede elegirse como destino separado si se quiere evaluar solo la llegada al exchange.
+- **Tarjeta física**: la [tarjeta Global de GrabrFi es solo virtual por ahora](https://www.grabrfi.com/en/global-card) y [Wallbit indica que la física llegará más adelante](https://help.wallbit.io/en/articles/9156314-fees-and-commissions-schedule). Ninguna satisface hoy el requisito de tarjeta física confirmada. La tarjeta Global tampoco permite extraer efectivo en cajeros.
+
+La [migración de GrabrFi](https://help.grabrfi.com/en/content/grabrfi-global-account-balance-transfer-and-account-upgrade-consent-terms) está prevista para el 1 de octubre de 2026: la cuenta anterior en Regent Bank se cerrará y la nueva mantiene stablecoins, sin cobertura FDIC/SIPC sobre ese saldo. No supongas que la cuenta anterior ya tiene las tarifas nuevas; por eso la plantilla histórica permanece separada.
+
+## Plantilla GrabrFi histórica
 
 La plantilla inicial y el botón **Plantilla GrabrFi** crean estas salidas editables:
 

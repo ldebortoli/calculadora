@@ -47,6 +47,7 @@
                     <Button Content="＋ Nuevo escenario" Margin="0,10,0,0" Click="NewScenario_Click" Style="{StaticResource GhostButton}" />
                     <Button Content="＋ Plantilla GrabrFi" Margin="0,8,0,0" Click="NewGrabrFiScenario_Click" Style="{StaticResource GhostButton}" />
                     <Button Content="＋ Plantilla Wallbit Pro" Margin="0,8,0,0" Click="NewWallbitScenario_Click" Style="{StaticResource GhostButton}" />
+                    <Button Content="＋ Comparador Global 2026" Margin="0,8,0,0" Click="NewGlobalComparison_Click" Style="{StaticResource GhostButton}" />
                     <Button Content="✎ Valores manuales globales" Margin="0,8,0,0" Click="OpenManualRates_Click" Style="{StaticResource GhostButton}" />
                     <Button Content="Eliminar escenario" Margin="0,8,0,0" Click="DeleteScenario_Click" Style="{StaticResource DangerButton}" />
                 </StackPanel>
@@ -71,8 +72,10 @@
                         <Border Background="#202C42" CornerRadius="9" Padding="12" Margin="0,18,0,0">
                             <StackPanel>
                                 <TextBlock Text="CIRCUITOS REALES CARGADOS" Foreground="#FFCE7A" FontSize="10" FontWeight="Bold" />
-                                <TextBlock Text="GrabrFi y Wallbit Pro incluyen ACH, stablecoins y retiro directo. Binance usa los libros Spot USDT/ARS y USDC/USDT."
+                                <TextBlock Text="Comparador Global 2026: elegí GrabrFi o Wallbit como origen y ARS, Interactive Brokers o wallet USDT como destino. Para pesos actualizá cotizaciones manuales y Binance Spot."
                                            Foreground="#C2CCDA" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" LineHeight="17" />
+                                <TextBlock Text="GrabrFi Global mantiene saldo en USDB (valor USD); la tarjeta actual es virtual y el saldo no tiene seguro FDIC. Wallbit Pro cuesta USD 9/mes. Ninguno confirma tarjeta física disponible; IBKR puede rechazar ACH y una cueva requiere tasa/costo propios."
+                                           Foreground="#A9B5C8" FontSize="10" TextWrapping="Wrap" Margin="0,9,0,0" LineHeight="16" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

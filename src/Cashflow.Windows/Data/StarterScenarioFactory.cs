@@ -35,6 +35,77 @@ namespace Cashflow.Windows.Data
         public static CashflowScenario CreateWallbitTemplate(string name) =>
             CreateCompleteTemplate(name, startAtWallbit: true);
 
+        public static CashflowScenario CreateGlobalComparisonTemplate(string name)
+        {
+            var scenario = CreateCompleteTemplate(name, startAtWallbit: false);
+            var grabrFi = scenario.Nodes.Single(node => node.Name == "GrabrFi");
+            var wallbit = scenario.Nodes.Single(node => node.Name == "Wallbit Pro");
+            wallbit.Kind = NodeKind.Source;
+
+            var grabrAch = scenario.Routes.Single(route => route.Label == "GrabrFi → Wallbit Pro · ACH");
+            grabrAch.PercentageFee = 0.5m;
+            grabrAch.PercentageFeeMinimum = 1m;
+            grabrAch.PercentageFeeMaximum = 10m;
+            grabrAch.MaximumInputAmount = 30000m;
+
+            var grabrUsdc = scenario.Routes.Single(route => route.Label == "GrabrFi → Binance · USDC");
+            grabrUsdc.PercentageFee = 1m;
+            grabrUsdc.MaximumInputAmount = 30000m;
+            var grabrUsdt = scenario.Routes.Single(route => route.Label == "GrabrFi → Binance · USDT");
+            grabrUsdt.PercentageFee = 1.1m;
+            grabrUsdt.MinimumInputAmount = 5m;
+            grabrUsdt.MaximumInputAmount = 30000m;
+
+            scenario.Routes.Add(CreateWallbitAchRoute(wallbit, grabrFi));
+
+            var broker = CreateNode("Interactive Brokers · ACH", "USD", NodeKind.Destination, 510, 60);
+            var externalUsdt = CreateNode("Wallet externa · USDT", "USDT", NodeKind.Destination, 510, 385);
+            scenario.Nodes.Add(broker);
+            scenario.Nodes.Add(externalUsdt);
+
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = grabrFi.Id,
+                ToNodeId = broker.Id,
+                Label = "GrabrFi Global → Interactive Brokers · ACH (verificar titularidad)",
+                PercentageFee = 0.5m,
+                PercentageFeeMinimum = 1m,
+                PercentageFeeMaximum = 10m,
+                MaximumInputAmount = 30000m,
+                FeeApplication = FeeApplicationMode.ChargeSeparately
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = wallbit.Id,
+                ToNodeId = broker.Id,
+                Label = "Wallbit Pro → Interactive Brokers · ACH (verificar titularidad)",
+                PercentageFee = 0.5m,
+                PercentageFeeMinimum = 5m,
+                FeeApplication = FeeApplicationMode.ChargeSeparately
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = grabrFi.Id,
+                ToNodeId = externalUsdt.Id,
+                Label = "GrabrFi Global → wallet externa · USDT TRON",
+                PercentageFee = 1.1m,
+                FixedFee = 1m,
+                MinimumInputAmount = 5m,
+                MaximumInputAmount = 30000m,
+                FeeApplication = FeeApplicationMode.ChargeSeparately
+            });
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = wallbit.Id,
+                ToNodeId = externalUsdt.Id,
+                Label = "Wallbit Pro → wallet externa · USDT TRON",
+                PercentageFee = 1.25m,
+                FeeApplication = FeeApplicationMode.ChargeSeparately
+            });
+
+            return scenario;
+        }
+
         public static bool UpgradeStarterTemplates(ScenarioDocument document)
         {
             if (document.Version >= CurrentDocumentVersion)

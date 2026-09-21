@@ -236,6 +236,21 @@ namespace Cashflow.Windows
             SaveSilently();
         }
 
+        private void NewGlobalComparison_Click(object sender, RoutedEventArgs e)
+        {
+            SaveScenarioName();
+            var scenario = StarterScenarioFactory.CreateGlobalComparisonTemplate($"Comparador Global 2026 · {_document.Scenarios.Count + 1}");
+            _document.Scenarios.Add(scenario);
+            ManualExchangeRateSynchronizer.EnsureSynchronized(_document);
+            _loading = true;
+            ScenarioCombo.ItemsSource = null;
+            ScenarioCombo.ItemsSource = _document.Scenarios;
+            ScenarioCombo.SelectedItem = scenario;
+            _loading = false;
+            ActivateScenario(scenario);
+            SaveSilently();
+        }
+
         private void DeleteScenario_Click(object sender, RoutedEventArgs e)
         {
             if (_scenario == null) return;

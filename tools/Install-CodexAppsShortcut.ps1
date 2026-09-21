@@ -1,8 +1,15 @@
+param(
+    [string]$PublishFolder = 'RutaCashflow-win-x64'
+)
+
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$publishFolder = Join-Path $projectRoot 'artifacts\RutaCashflow-win-x64'
+$publishFolder = Join-Path $projectRoot "artifacts\$PublishFolder"
 $executablePath = Join-Path $publishFolder 'RutaCashflow.exe'
 
 if (-not (Test-Path -LiteralPath $executablePath)) {
+    if ($PublishFolder -ne 'RutaCashflow-win-x64') {
+        throw "Publica primero la versión en $publishFolder antes de instalar el acceso directo."
+    }
     & (Join-Path $PSScriptRoot 'Publish-Windows.ps1')
     if ($LASTEXITCODE -ne 0) {
         throw 'No se pudo publicar RutaCashflow antes de crear el acceso directo.'

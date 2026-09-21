@@ -37,8 +37,10 @@ namespace Cashflow.Windows.Data
                         document.ManualExchangeRates ??= new System.Collections.Generic.List<ManualExchangeRateSetting>();
                         var retirementMoneyUpgraded = document.Retirement.MigrateLegacyMoneyToCents();
                         var retirementPlanningUpgraded = document.Retirement.EnsurePlanningCollections();
-                        if (StarterScenarioFactory.UpgradeStarterTemplates(document) ||
-                            ManualExchangeRateSynchronizer.EnsureSynchronized(document) ||
+                        var starterUpgraded = StarterScenarioFactory.UpgradeStarterTemplates(document);
+                        var globalFeesUpgraded = StarterScenarioFactory.UpgradeGrabrFiGlobalFees(document);
+                        var manualRatesUpgraded = ManualExchangeRateSynchronizer.EnsureSynchronized(document);
+                        if (starterUpgraded || globalFeesUpgraded || manualRatesUpgraded ||
                             retirementMoneyUpgraded ||
                             retirementPlanningUpgraded)
                         {

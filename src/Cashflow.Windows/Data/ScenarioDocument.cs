@@ -9,6 +9,7 @@ namespace Cashflow.Windows.Data
         public string? ActiveScenarioId { get; set; }
         public List<CashflowScenario> Scenarios { get; set; } = new List<CashflowScenario>();
         public List<ManualExchangeRateSetting> ManualExchangeRates { get; set; } = new List<ManualExchangeRateSetting>();
+        public bool GrabrFiGlobalFeesApplied { get; set; }
         public MusicSessionSettings MusicSession { get; set; } = new MusicSessionSettings();
         public RetirementSettings Retirement { get; set; } = new RetirementSettings();
     }

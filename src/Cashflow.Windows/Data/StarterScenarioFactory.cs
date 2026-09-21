@@ -10,7 +10,7 @@ namespace Cashflow.Windows.Data
         private const string LegacyBinanceSellUsdtForUsdc = "binance-spot-sell-usdt-usdc";
 
         public static CashflowScenario CreateDemo() =>
-            CreateGrabrFiTemplate("GrabrFi · circuito completo");
+            CreateGrabrFiTemplate("GrabrFi Global · circuito completo");
 
         public static ScenarioDocument CreateStarterDocument()
         {
@@ -18,6 +18,7 @@ namespace Cashflow.Windows.Data
             var document = new ScenarioDocument
             {
                 Version = CurrentDocumentVersion,
+                GrabrFiGlobalFeesApplied = true,
                 ActiveScenarioId = grabrFi.Id,
                 Scenarios =
                 {
@@ -34,6 +35,48 @@ namespace Cashflow.Windows.Data
 
         public static CashflowScenario CreateWallbitTemplate(string name) =>
             CreateCompleteTemplate(name, startAtWallbit: true);
+
+        public static bool UpgradeGrabrFiGlobalFees(ScenarioDocument document)
+        {
+            if (document.GrabrFiGlobalFeesApplied)
+            {
+                return false;
+            }
+
+            foreach (var scenario in document.Scenarios)
+            {
+                if (scenario.Name == "GrabrFi · circuito completo")
+                {
+                    scenario.Name = "GrabrFi Global · circuito completo";
+                }
+
+                foreach (var route in scenario.Routes)
+                {
+                    if (route.Label == "GrabrFi → Wallbit Pro · ACH" &&
+                        route.PercentageFee == 0.3m &&
+                        route.PercentageFeeMinimum == 1m &&
+                        route.PercentageFeeMaximum == 5m &&
+                        route.FixedFee == 0m)
+                    {
+                        route.PercentageFee = 0.5m;
+                        route.PercentageFeeMaximum = 10m;
+                    }
+                    else if (route.Label == "GrabrFi → Binance · USDC" &&
+                             route.PercentageFee == 0.5m && route.FixedFee == 1m)
+                    {
+                        route.PercentageFee = 1m;
+                    }
+                    else if (route.Label == "GrabrFi → Binance · USDT" &&
+                             route.PercentageFee == 0.6m && route.FixedFee == 1m)
+                    {
+                        route.PercentageFee = 1.1m;
+                    }
+                }
+            }
+
+            document.GrabrFiGlobalFeesApplied = true;
+            return true;
+        }
 
         public static CashflowScenario CreateGlobalComparisonTemplate(string name)
         {
@@ -67,7 +110,7 @@ namespace Cashflow.Windows.Data
             {
                 FromNodeId = grabrFi.Id,
                 ToNodeId = broker.Id,
-                Label = "GrabrFi Global → Interactive Brokers · ACH (verificar titularidad)",
+                Label = "GrabrFi Global → Interactive Brokers · ACH",
                 PercentageFee = 0.5m,
                 PercentageFeeMinimum = 1m,
                 PercentageFeeMaximum = 10m,
@@ -78,7 +121,7 @@ namespace Cashflow.Windows.Data
             {
                 FromNodeId = wallbit.Id,
                 ToNodeId = broker.Id,
-                Label = "Wallbit Pro → Interactive Brokers · ACH (verificar titularidad)",
+                Label = "Wallbit Pro → Interactive Brokers · ACH",
                 PercentageFee = 0.5m,
                 PercentageFeeMinimum = 5m,
                 FeeApplication = FeeApplicationMode.ChargeSeparately
@@ -242,7 +285,7 @@ namespace Cashflow.Windows.Data
                 FromNodeId = grabrFi.Id,
                 ToNodeId = binanceUsdc.Id,
                 Label = "GrabrFi → Binance · USDC",
-                PercentageFee = 0.5m,
+                PercentageFee = 1m,
                 FixedFee = 1m,
                 FeeApplication = FeeApplicationMode.ChargeSeparately
             });
@@ -251,7 +294,7 @@ namespace Cashflow.Windows.Data
                 FromNodeId = grabrFi.Id,
                 ToNodeId = binanceUsdt.Id,
                 Label = "GrabrFi → Binance · USDT",
-                PercentageFee = 0.6m,
+                PercentageFee = 1.1m,
                 FixedFee = 1m,
                 FeeApplication = FeeApplicationMode.ChargeSeparately
             });
@@ -398,9 +441,9 @@ namespace Cashflow.Windows.Data
                 FromNodeId = grabrFi.Id,
                 ToNodeId = wallbit.Id,
                 Label = "GrabrFi → Wallbit Pro · ACH",
-                PercentageFee = 0.3m,
+                PercentageFee = 0.5m,
                 PercentageFeeMinimum = 1m,
-                PercentageFeeMaximum = 5m,
+                PercentageFeeMaximum = 10m,
                 FeeApplication = FeeApplicationMode.ChargeSeparately
             };
 

@@ -13,11 +13,14 @@ namespace Cashflow.Windows.Data
     public sealed class UsInflationService
     {
         private const string SeriesId = "CUUR0000SA0";
-        private static readonly HttpClient Client = new HttpClient
+        private static readonly HttpClient SharedClient = new HttpClient
         {
             BaseAddress = new Uri("https://api.bls.gov"),
             Timeout = TimeSpan.FromSeconds(12)
         };
+        private readonly HttpClient _client;
+
+        public UsInflationService(HttpClient? client = null) => _client = client ?? SharedClient;
 
         public async Task<UsInflationQuote> GetLatestAsync(CancellationToken cancellationToken = default)
         {
@@ -29,7 +32,7 @@ namespace Cashflow.Windows.Data
                 endyear = currentYear.ToString(CultureInfo.InvariantCulture)
             });
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-            using var response = await Client.PostAsync("/publicAPI/v2/timeseries/data/", content, cancellationToken);
+            using var response = await _client.PostAsync("/publicAPI/v2/timeseries/data/", content, cancellationToken);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);

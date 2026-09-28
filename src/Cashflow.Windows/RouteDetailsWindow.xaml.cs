@@ -17,7 +17,7 @@ namespace Cashflow.Windows
             WindowTheme.ApplyDarkTitleBar(this);
 
             PathText.Text = result.PathLabel;
-            var sourceCurrency = result.Steps.Count > 0 ? result.Steps[0].From.Currency : string.Empty;
+            var sourceCurrency = result.Steps[0].From.Currency;
             BudgetText.Text = FormatMoney(result.SourceBudgetAmount, sourceCurrency);
             DebitText.Text = FormatMoney(result.SourceDebitedAmount, sourceCurrency);
             FinalAmountText.Text = FormatMoney(result.FinalAmount, result.DestinationCurrency);

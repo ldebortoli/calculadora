@@ -34,9 +34,14 @@ namespace Cashflow.Core.Tests
             Run("El minimo recibido filtra operaciones pequenas", MinimumOutputFiltersSmallTrades);
             Run("Los limites de monto filtran ofertas", AmountLimitsFilterRoutes);
             Run("El libro calcula precio promedio segun profundidad", OrderBookDepthAffectsRate);
+            Run("El libro rechaza profundidad insuficiente y niveles invalidos", OrderBookRejectsInvalidDepthAndLevels);
+            Run("La compra en el libro rechaza argumentos nulos o montos invalidos", BuyingQuoteRejectsInvalidInputs);
+            Run("Un origen sin salida y una comision total no producen rutas", UnreachableDestinationsAndOutputFees);
+            Run("La exploracion limita circuitos combinatorios", PathEnumerationHasAStableLimit);
             Run("El calculo inverso incluye el cargo aparte del origen", TargetFundingIncludesSeparateFee);
             Run("El calculo inverso suma cargos aparte intermedios", TargetFundingIncludesIntermediateSeparateFee);
             Run("El calculo inverso ordena la ruta de menor debito", TargetFundingSortsBySourceDebit);
+            Run("El calculo inverso supera una comision inicial mayor al objetivo", TargetFundingRetriesAfterFeeConsumesInitialGuess);
 
             Console.WriteLine();
             Console.WriteLine($"Resultado: {_passed} correctas, {_failed} fallidas.");
@@ -541,6 +546,93 @@ namespace Cashflow.Core.Tests
                 ExchangeRate = 1000m
             });
             return scenario;
+        }
+
+        private static void OrderBookRejectsInvalidDepthAndLevels()
+        {
+            Throws<InvalidOperationException>(() => OrderBookQuoteCalculator.RateForBuyingBase(
+                new[] { (Price: 2m, Quantity: 1m) }, 3m));
+            Throws<ArgumentException>(() => OrderBookQuoteCalculator.RateForBuyingBase(
+                new[] { (Price: 2m, Quantity: 0m) }, 1m));
+            Throws<InvalidOperationException>(() => OrderBookQuoteCalculator.RateForSellingBase(
+                new[] { (Price: 2m, Quantity: 1m) }, 2m));
+            Throws<ArgumentException>(() => OrderBookQuoteCalculator.RateForSellingBase(
+                new[] { (Price: 0m, Quantity: 1m) }, 1m));
+        }
+
+        private static void BuyingQuoteRejectsInvalidInputs()
+        {
+            Throws<ArgumentNullException>(() => OrderBookQuoteCalculator.RateForBuyingBase(null!, 1m));
+            Throws<ArgumentOutOfRangeException>(() => OrderBookQuoteCalculator.RateForBuyingBase(
+                Array.Empty<(decimal Price, decimal Quantity)>(), 0m));
+        }
+
+        private static void UnreachableDestinationsAndOutputFees()
+        {
+            var scenario = CreateScenario();
+            scenario.Routes.Clear();
+            Equal(0, new RouteCalculator().Calculate(scenario, "source", "destination", 100m).Count);
+            var route = new TransferRoute
+            {
+                FromNodeId = "source",
+                ToNodeId = "destination",
+                ExchangeRate = 1m,
+                OutputPercentageFee = 100m
+            };
+            scenario.Routes.Add(route);
+            Equal(0, new RouteCalculator().Calculate(scenario, "source", "destination", 100m).Count);
+            Equal(0m, RouteCalculator.CalculateTransferAmountWithinBudget(route, 0m));
+        }
+
+        private static void PathEnumerationHasAStableLimit()
+        {
+            var scenario = new CashflowScenario();
+            for (var index = 0; index <= 14; index++)
+            {
+                scenario.Nodes.Add(new PlatformNode
+                {
+                    Id = "n" + index,
+                    Name = "Paso " + index,
+                    Currency = "USD",
+                    Kind = index == 0 ? NodeKind.Source : index == 14 ? NodeKind.Destination : NodeKind.Intermediate
+                });
+                if (index == 0) continue;
+                for (var lane = 0; lane < 2; lane++)
+                {
+                    scenario.Routes.Add(new TransferRoute
+                    {
+                        FromNodeId = "n" + (index - 1),
+                        ToNodeId = "n" + index,
+                        ExchangeRate = 1m,
+                        Label = "Carril " + lane
+                    });
+                }
+            }
+
+            Equal(10000, new RouteCalculator().Calculate(scenario, "n0", "n14", 1m).Count);
+            var enumerate = typeof(TargetFundingCalculator).GetMethod("EnumeratePaths",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var nodes = scenario.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+            var paths = (System.Collections.ICollection)enumerate.Invoke(null,
+                new object[] { scenario, "n0", "n14", nodes })!;
+            Equal(10000, paths.Count);
+        }
+
+        private static void TargetFundingRetriesAfterFeeConsumesInitialGuess()
+        {
+            var scenario = CreateScenario();
+            scenario.Routes.Clear();
+            scenario.Routes.Add(new TransferRoute
+            {
+                FromNodeId = "source",
+                ToNodeId = "destination",
+                ExchangeRate = 1m,
+                FixedFee = 100m
+            });
+            var result = new TargetFundingCalculator().Calculate(scenario, "source", "destination", 1m);
+            Equal(1, result.Count);
+            True(result[0].RequiredInputAmount >= 101m);
+            True(result[0].Route.FinalAmount >= 1m);
         }
 
         private static void Run(string name, Action test)

@@ -115,10 +115,13 @@ namespace Cashflow.Core.Calculation
             return Math.Floor(amount / step.Value) * step.Value;
         }
 
-        public static decimal CalculateTransferAmountWithinBudget(TransferRoute route, decimal budget)
+        public static decimal CalculateTransferAmountWithinBudget(
+            TransferRoute route,
+            decimal budget,
+            bool requireConfiguredExchangeRate = true)
         {
             if (route == null) throw new ArgumentNullException(nameof(route));
-            if (budget <= 0m || !IsConfigurationValid(route))
+            if (budget <= 0m || !IsConfigurationValid(route, requireConfiguredExchangeRate))
             {
                 return 0m;
             }
@@ -180,11 +183,6 @@ namespace Cashflow.Core.Calculation
             var debitedAmount = route.FeeApplication == FeeApplicationMode.ChargeSeparately
                 ? tradeableInput + totalFee
                 : tradeableInput;
-            if (debitedAmount > amount)
-            {
-                return false;
-            }
-
             var amountAfterFee = route.FeeApplication == FeeApplicationMode.ChargeSeparately
                 ? tradeableInput
                 : tradeableInput - totalFee;
@@ -233,7 +231,7 @@ namespace Cashflow.Core.Calculation
                 route.PercentageFeeMinimum,
                 route.PercentageFeeMaximum) + route.FixedFee;
 
-        private static bool IsConfigurationValid(TransferRoute route) =>
+        private static bool IsConfigurationValid(TransferRoute route, bool requireConfiguredExchangeRate = true) =>
             route.PercentageFee >= 0m &&
             route.PercentageFee <= 100m &&
             route.TradingFeePercentage >= 0m &&
@@ -251,8 +249,7 @@ namespace Cashflow.Core.Calculation
             (!route.MinimumOutputAmount.HasValue || route.MinimumOutputAmount.Value >= 0m) &&
             (!route.MinimumInputAmount.HasValue || !route.MaximumInputAmount.HasValue ||
                 route.MinimumInputAmount.Value <= route.MaximumInputAmount.Value) &&
-            route.ExchangeRateConfigured &&
-            route.ExchangeRate > 0m;
+            (!requireConfiguredExchangeRate || route.ExchangeRateConfigured && route.ExchangeRate > 0m);
 
         private static bool IsAmountValid(TransferRoute route, decimal amount) =>
             (!route.MinimumInputAmount.HasValue || amount >= route.MinimumInputAmount.Value) &&

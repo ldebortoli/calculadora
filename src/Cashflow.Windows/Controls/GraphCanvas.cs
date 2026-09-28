@@ -90,7 +90,12 @@ namespace Cashflow.Windows.Controls
             if (Scenario == null) return;
 
             var point = ToContentPoint(e.GetPosition(this));
-            var node = Scenario.Nodes.LastOrDefault(candidate => NodeBounds(candidate).Contains(point));
+            SelectAt(point);
+        }
+
+        private void SelectAt(Point point)
+        {
+            var node = Scenario!.Nodes.LastOrDefault(candidate => NodeBounds(candidate).Contains(point));
             if (node != null)
             {
                 _draggedNode = node;
@@ -110,18 +115,24 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (_isPanning && e.RightButton == MouseButtonState.Pressed)
+            UpdatePointer(e.GetPosition(this), e.LeftButton == MouseButtonState.Pressed,
+                e.RightButton == MouseButtonState.Pressed);
+        }
+
+        private void UpdatePointer(Point pointer, bool leftPressed, bool rightPressed)
+        {
+            if (_isPanning && rightPressed)
             {
-                _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+                _panOffset = _panOrigin + (pointer - _panStart);
                 InvalidateVisual();
                 return;
             }
-            if (_draggedNode == null || e.LeftButton != MouseButtonState.Pressed)
+            if (_draggedNode == null || !leftPressed)
             {
                 return;
             }
 
-            var point = ToContentPoint(e.GetPosition(this)) - _dragOffset;
+            var point = ToContentPoint(pointer) - _dragOffset;
             const double margin = 12d;
             var minimumX = (margin - _panOffset.X) / _zoom;
             var maximumX = (ActualWidth - margin - _panOffset.X) / _zoom - NodeWidth;
@@ -237,7 +248,7 @@ namespace Cashflow.Windows.Controls
         {
             var bounds = NodeBounds(node);
             var selected = node.Id == SelectedNodeId;
-            var hasManualData = Scenario?.Routes.Any(route =>
+            var hasManualData = Scenario!.Routes.Any(route =>
                 route.Enabled && route.FromNodeId == node.Id && route.ExchangeRateIsManual) == true;
             var border = selected
                 ? Color.FromRgb(24, 191, 162)
@@ -303,7 +314,7 @@ namespace Cashflow.Windows.Controls
             context.DrawLine(pen, start, end);
             DrawArrow(context, end, vector, color);
 
-            if (!selected && !highlighted && (Scenario?.Routes.Count ?? 0) > 6)
+            if (!selected && !highlighted && Scenario!.Routes.Count > 6)
             {
                 return;
             }
@@ -424,10 +435,10 @@ namespace Cashflow.Windows.Controls
 
             direction.Normalize();
             var perpendicular = new Vector(-direction.Y, direction.X);
-            var hasReverseRoute = Scenario?.Routes.Any(candidate =>
+            var hasReverseRoute = Scenario!.Routes.Any(candidate =>
                 candidate.Id != route.Id &&
                 candidate.FromNodeId == route.ToNodeId &&
-                candidate.ToNodeId == route.FromNodeId) == true;
+                candidate.ToNodeId == route.FromNodeId);
             var laneOffset = hasReverseRoute ? 12d : 0d;
             start = fromCenter + direction * 90 + perpendicular * laneOffset;
             end = toCenter - direction * 90 + perpendicular * laneOffset;

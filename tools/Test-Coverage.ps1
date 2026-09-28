@@ -1,6 +1,6 @@
 param(
-    [double]$MinimumLineCoverage = 34,
-    [double]$MinimumBranchCoverage = 28
+    [double]$MinimumLineCoverage = 100,
+    [double]$MinimumBranchCoverage = 100
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,6 +25,19 @@ try {
 
     & dotnet build CashflowCalculator.sln -c Release
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    [xml]$project = Get-Content -LiteralPath (Join-Path $root 'src/Cashflow.Windows/Cashflow.Windows.csproj') -Raw
+    $releaseVersion = [string]$project.Project.PropertyGroup.Version
+    $releaseFileVersion = [string]$project.Project.PropertyGroup.FileVersion
+    if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$' -or $releaseFileVersion -ne "$releaseVersion.0") {
+        throw "Version y FileVersion deben coincidir: $releaseVersion / $releaseFileVersion."
+    }
+    $windowsProductAssembly = Join-Path $root 'src/Cashflow.Windows/bin/Release/net8.0-windows/RutaCashflow.dll'
+    $builtFileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($windowsProductAssembly).FileVersion
+    $builtAssemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($windowsProductAssembly).Version.ToString()
+    if ($builtFileVersion -ne $releaseFileVersion -or $builtAssemblyVersion -ne $releaseFileVersion) {
+        throw "Version compilada inconsistente: archivo $builtFileVersion, ensamblado $builtAssemblyVersion, proyecto $releaseFileVersion."
+    }
 
     & dotnet dotnet-coverage collect --settings $settingsPath --output $coreReport --output-format cobertura --nologo dotnet $coreAssembly
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

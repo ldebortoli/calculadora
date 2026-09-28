@@ -11,11 +11,14 @@ namespace Cashflow.Windows.Data
 {
     public sealed class BinanceSpotQuoteService
     {
-        private static readonly HttpClient Client = new HttpClient
+        private static readonly HttpClient SharedClient = new HttpClient
         {
             BaseAddress = new Uri("https://api.binance.com"),
             Timeout = TimeSpan.FromSeconds(10)
         };
+        private readonly HttpClient _client;
+
+        public BinanceSpotQuoteService(HttpClient? client = null) => _client = client ?? SharedClient;
 
         public async Task<BinanceSpotQuotes> GetQuotesAsync(
             decimal usdcSellAmount,
@@ -52,9 +55,9 @@ namespace Cashflow.Windows.Data
             };
         }
 
-        private static async Task<OrderBook> GetOrderBookAsync(string symbol, CancellationToken cancellationToken)
+        private async Task<OrderBook> GetOrderBookAsync(string symbol, CancellationToken cancellationToken)
         {
-            using var response = await Client.GetAsync($"/api/v3/depth?symbol={symbol}&limit=100", cancellationToken);
+            using var response = await _client.GetAsync($"/api/v3/depth?symbol={symbol}&limit=100", cancellationToken);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
@@ -66,9 +69,9 @@ namespace Cashflow.Windows.Data
             };
         }
 
-        private static async Task<BinanceSymbolRules> GetSymbolRulesAsync(string symbol, CancellationToken cancellationToken)
+        private async Task<BinanceSymbolRules> GetSymbolRulesAsync(string symbol, CancellationToken cancellationToken)
         {
-            using var response = await Client.GetAsync($"/api/v3/exchangeInfo?symbol={symbol}", cancellationToken);
+            using var response = await _client.GetAsync($"/api/v3/exchangeInfo?symbol={symbol}", cancellationToken);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);

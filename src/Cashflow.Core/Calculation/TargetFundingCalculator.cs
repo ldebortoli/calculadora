@@ -8,7 +8,7 @@ namespace Cashflow.Core.Calculation
     public sealed class TargetFundingCalculator
     {
         private const int MaximumPaths = 10000;
-        private const decimal Precision = 0.00000001m;
+        private static readonly decimal Precision = 0.00000001m;
 
         public IReadOnlyList<TargetFundingResult> Calculate(
             CashflowScenario scenario,
@@ -38,7 +38,7 @@ namespace Cashflow.Core.Calculation
                 RouteResult? highResult = null;
                 for (var attempt = 0; attempt < 64; attempt++)
                 {
-                    if (TryEvaluate(path, nodes, sourceNodeId, destinationNodeId, high, out highResult) &&
+                    if (TryEvaluate(path, nodes, destinationNodeId, high, out highResult) &&
                         highResult.FinalAmount >= targetAmount)
                     {
                         break;
@@ -61,7 +61,7 @@ namespace Cashflow.Core.Calculation
                 for (var iteration = 0; iteration < 96 && high - low > Precision; iteration++)
                 {
                     var middle = low + (high - low) / 2m;
-                    if (TryEvaluate(path, nodes, sourceNodeId, destinationNodeId, middle, out var middleResult) &&
+                    if (TryEvaluate(path, nodes, destinationNodeId, middle, out var middleResult) &&
                         middleResult.FinalAmount >= targetAmount)
                     {
                         high = middle;
@@ -73,7 +73,7 @@ namespace Cashflow.Core.Calculation
                     }
                 }
 
-                if (!TryEvaluate(path, nodes, sourceNodeId, destinationNodeId, high, out var finalResult) ||
+                if (!TryEvaluate(path, nodes, destinationNodeId, high, out var finalResult) ||
                     finalResult.FinalAmount < targetAmount || finalResult.Steps.Count == 0)
                 {
                     continue;
@@ -146,18 +146,15 @@ namespace Cashflow.Core.Calculation
         private static bool TryEvaluate(
             IReadOnlyList<TransferRoute> path,
             IReadOnlyDictionary<string, PlatformNode> nodes,
-            string sourceNodeId,
             string destinationNodeId,
             decimal inputAmount,
             out RouteResult result)
         {
             var amount = inputAmount;
-            var currentNodeId = sourceNodeId;
             var steps = new List<RouteStepResult>();
             foreach (var route in path)
             {
-                if (route.FromNodeId != currentNodeId ||
-                    !RouteCalculator.TryApplyRoute(route, nodes[route.FromNodeId], nodes[route.ToNodeId], amount, out var step))
+                if (!RouteCalculator.TryApplyRoute(route, nodes[route.FromNodeId], nodes[route.ToNodeId], amount, out var step))
                 {
                     result = null!;
                     return false;
@@ -165,13 +162,6 @@ namespace Cashflow.Core.Calculation
 
                 steps.Add(step);
                 amount = step.OutputAmount;
-                currentNodeId = route.ToNodeId;
-            }
-
-            if (currentNodeId != destinationNodeId)
-            {
-                result = null!;
-                return false;
             }
 
             result = new RouteResult
@@ -180,7 +170,7 @@ namespace Cashflow.Core.Calculation
                 FinalAmount = amount,
                 DestinationCurrency = nodes[destinationNodeId].Currency,
                 SourceBudgetAmount = inputAmount,
-                SourceDebitedAmount = steps.Count > 0 ? steps[0].DebitedAmount : 0m
+                SourceDebitedAmount = steps[0].DebitedAmount
             };
             return true;
         }

@@ -184,7 +184,7 @@ La validación completa restaura la herramienta local, compila en Release, ejecu
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\Test-Coverage.ps1
 ```
 
-El script informa las dos métricas disponibles en el informe Cobertura de este harness: líneas y ramas. Falla por debajo de 34% de líneas o 28% de ramas; la línea base local de la versión 0.9 es 35,00% y 29,30%, respectivamente. GitHub Actions ejecuta esta validación rápida en cada push y pull request; no hay suites externas o costosas recurrentes.
+El script informa las dos métricas disponibles en el informe Cobertura de este harness: líneas y ramas. Ambas deben alcanzar el 100% del código de producción instrumentado. También verifica que la versión del proyecto coincida con las versiones compiladas del archivo y ensamblado. GitHub Actions ejecuta esta validación rápida en cada push y pull request; no hay suites externas o costosas recurrentes.
 
 Para generar un ejecutable liviano compatible con el runtime instalado:
 

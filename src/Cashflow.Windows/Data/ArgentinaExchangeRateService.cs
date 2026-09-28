@@ -9,11 +9,14 @@ namespace Cashflow.Windows.Data
 {
     public sealed class ArgentinaExchangeRateService
     {
-        private static readonly HttpClient Client = new HttpClient
+        private static readonly HttpClient SharedClient = new HttpClient
         {
             BaseAddress = new Uri("https://dolarapi.com"),
             Timeout = TimeSpan.FromSeconds(10)
         };
+        private readonly HttpClient _client;
+
+        public ArgentinaExchangeRateService(HttpClient? client = null) => _client = client ?? SharedClient;
 
         public async Task<ArgentinaExchangeRates> GetRatesAsync(CancellationToken cancellationToken = default)
         {
@@ -30,9 +33,9 @@ namespace Cashflow.Windows.Data
             };
         }
 
-        private static async Task<ArgentinaExchangeRate> GetRateAsync(string path, CancellationToken cancellationToken)
+        private async Task<ArgentinaExchangeRate> GetRateAsync(string path, CancellationToken cancellationToken)
         {
-            using var response = await Client.GetAsync(path, cancellationToken);
+            using var response = await _client.GetAsync(path, cancellationToken);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);

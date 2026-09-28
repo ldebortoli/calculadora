@@ -77,11 +77,16 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (!_isPanning || e.RightButton != MouseButtonState.Pressed)
+            UpdatePan(e.GetPosition(this), e.RightButton == MouseButtonState.Pressed, e);
+        }
+
+        private void UpdatePan(Point pointer, bool rightPressed, MouseEventArgs e)
+        {
+            if (!_isPanning || !rightPressed)
             {
                 return;
             }
-            _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+            _panOffset = _panOrigin + (pointer - _panStart);
             InvalidateVisual();
             e.Handled = true;
         }

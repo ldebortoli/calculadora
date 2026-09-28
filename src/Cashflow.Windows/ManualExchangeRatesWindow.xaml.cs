@@ -133,11 +133,14 @@ namespace Cashflow.Windows
                 _store.Save(_document);
                 DialogResult = true;
             }
-            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-            {
-                StatusText.Text = "No se pudieron guardar los valores: " + exception.Message;
-                StatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 154, 168));
-            }
+            catch (System.IO.IOException exception) { ShowSaveError(exception); }
+            catch (UnauthorizedAccessException exception) { ShowSaveError(exception); }
+        }
+
+        private void ShowSaveError(Exception exception)
+        {
+            StatusText.Text = "No se pudieron guardar los valores: " + exception.Message;
+            StatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 154, 168));
         }
 
         private sealed class RateEditor

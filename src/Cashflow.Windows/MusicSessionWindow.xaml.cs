@@ -19,15 +19,21 @@ namespace Cashflow.Windows
         private readonly ScenarioDocument _document;
         private readonly ScenarioStore _store;
         private readonly MusicSessionCalculator _calculator = new MusicSessionCalculator();
-        private readonly ArgentinaExchangeRateService _argentinaRates = new ArgentinaExchangeRateService();
-        private readonly ScenarioMarketUpdater _marketUpdater = new ScenarioMarketUpdater();
+        private readonly ArgentinaExchangeRateService _argentinaRates;
+        private readonly ScenarioMarketUpdater _marketUpdater;
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private bool _refreshing;
 
-        public MusicSessionWindow(ScenarioDocument document, ScenarioStore store)
+        public MusicSessionWindow(
+            ScenarioDocument document,
+            ScenarioStore store,
+            ScenarioMarketUpdater? marketUpdater = null,
+            ArgentinaExchangeRateService? argentinaRates = null)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _marketUpdater = marketUpdater ?? new ScenarioMarketUpdater();
+            _argentinaRates = argentinaRates ?? new ArgentinaExchangeRateService();
             InitializeComponent();
             _timer.Tick += async (_, __) => await RefreshMarketsAsync(false);
         }
@@ -417,11 +423,12 @@ namespace Cashflow.Windows
             {
                 _store.Save(_document);
             }
-            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-            {
-                RefreshStatusText.Text = "No se pudieron guardar los cambios locales.";
-            }
+            catch (System.IO.IOException) { ShowSaveError(); }
+            catch (UnauthorizedAccessException) { ShowSaveError(); }
         }
+
+        private void ShowSaveError() =>
+            RefreshStatusText.Text = "No se pudieron guardar los cambios locales.";
 
         private bool ValidationError(string message, bool show)
         {

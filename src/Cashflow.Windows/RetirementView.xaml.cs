@@ -19,16 +19,17 @@ namespace Cashflow.Windows
         private readonly ScenarioDocument _document;
         private readonly ScenarioStore _store;
         private readonly RetirementCalculator _calculator = new RetirementCalculator();
-        private readonly UsInflationService _inflationService = new UsInflationService();
+        private readonly UsInflationService _inflationService;
         private readonly List<IncomeEditor> _incomeEditors = new List<IncomeEditor>();
         private readonly List<ReserveEditor> _reserveEditors = new List<ReserveEditor>();
         private bool _initialized;
         private bool _refreshing;
 
-        public RetirementView(ScenarioDocument document, ScenarioStore store)
+        public RetirementView(ScenarioDocument document, ScenarioStore store, UsInflationService? inflationService = null)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _inflationService = inflationService ?? new UsInflationService();
             _document.Retirement.EnsurePlanningCollections();
             InitializeComponent();
         }
@@ -177,6 +178,11 @@ namespace Cashflow.Windows
 
         private async void RefreshInflation_Click(object sender, RoutedEventArgs e)
         {
+            await RefreshInflationAsync();
+        }
+
+        private async Task RefreshInflationAsync()
+        {
             if (_refreshing || !TrySaveInputs(true))
             {
                 return;
@@ -202,7 +208,6 @@ namespace Cashflow.Windows
                 exception is HttpRequestException ||
                 exception is TaskCanceledException ||
                 exception is JsonException ||
-                exception is FormatException ||
                 exception is InvalidOperationException)
             {
                 InflationStatusText.Text = "No se pudo actualizar el BLS. Se conserva el porcentaje guardado.";
@@ -514,9 +519,7 @@ namespace Cashflow.Windows
             settings.VacationReserveMonthlyCapCents = 0;
             settings.TargetInvestedCents = target;
             settings.TargetStocksCents = stockTarget;
-            settings.StockAllocationPercentage = target > 0
-                ? decimal.Round(stockTarget * 100m / target, 4, MidpointRounding.AwayFromZero)
-                : 0m;
+            settings.StockAllocationPercentage = decimal.Round(stockTarget * 100m / target, 4, MidpointRounding.AwayFromZero);
             settings.StockAnnualReturnPercentage = stockReturn;
             settings.BondAnnualReturnPercentage = bondReturn;
             settings.UsInflationPercentage = inflation;
@@ -732,11 +735,12 @@ namespace Cashflow.Windows
             {
                 _store.Save(_document);
             }
-            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-            {
-                SaveStatusText.Text = "No se pudieron guardar los cambios locales.";
-            }
+            catch (System.IO.IOException) { ShowSaveError(); }
+            catch (UnauthorizedAccessException) { ShowSaveError(); }
         }
+
+        private void ShowSaveError() =>
+            SaveStatusText.Text = "No se pudieron guardar los cambios locales.";
 
         private bool ValidationError(string message, bool show)
         {

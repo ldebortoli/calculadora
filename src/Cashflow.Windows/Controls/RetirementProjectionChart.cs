@@ -64,8 +64,13 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (!_isPanning || e.RightButton != MouseButtonState.Pressed) return;
-            _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+            UpdatePan(e.GetPosition(this), e.RightButton == MouseButtonState.Pressed, e);
+        }
+
+        private void UpdatePan(Point pointer, bool rightPressed, MouseEventArgs e)
+        {
+            if (!_isPanning || !rightPressed) return;
+            _panOffset = _panOrigin + (pointer - _panStart);
             CoercePan();
             InvalidateVisual();
             e.Handled = true;
@@ -91,6 +96,11 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
+            SelectAt(e.GetPosition(this), e);
+        }
+
+        private void SelectAt(Point pointer, MouseButtonEventArgs e)
+        {
             if (_projection == null || _projection.Points.Count == 0 || ActualWidth < 300d || ActualHeight < 180d)
             {
                 return;
@@ -100,7 +110,7 @@ namespace Cashflow.Windows.Controls
             var maximumYear = Math.Max(1d, _projection.Points.Max(point => point.Year));
             var maximumValue = Math.Max(_projection.TargetRealUsd, _projection.Points.Max(point => point.TotalRealUsd));
             maximumValue = Math.Max(1d, maximumValue * 1.08d);
-            var cursor = ToContentPoint(e.GetPosition(this));
+            var cursor = ToContentPoint(pointer);
             if (!plot.Contains(cursor))
             {
                 return;
@@ -222,14 +232,11 @@ namespace Cashflow.Windows.Controls
 
         private void DrawTarget(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
         {
-            if (_projection == null)
-            {
-                return;
-            }
-            var y = MapY(_projection.TargetRealUsd, plot, maximumValue);
+            var projection = _projection!;
+            var y = MapY(projection.TargetRealUsd, plot, maximumValue);
             var pen = new Pen(new SolidColorBrush(Color.FromRgb(242, 153, 74)), 1.5) { DashStyle = DashStyles.Dash };
             context.DrawLine(pen, new Point(plot.Left, y), new Point(plot.Right, y));
-            var label = _projection.UsesInflationAdjustment ? "OBJETIVO REAL" : "OBJETIVO NOMINAL";
+            var label = projection.UsesInflationAdjustment ? "OBJETIVO REAL" : "OBJETIVO NOMINAL";
             var size = MeasureText(label, 8, FontWeights.Bold);
             context.DrawRoundedRectangle(
                 new SolidColorBrush(Color.FromRgb(49, 38, 23)),
@@ -242,11 +249,7 @@ namespace Cashflow.Windows.Controls
 
         private void DrawArea(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
         {
-            if (_projection == null)
-            {
-                return;
-            }
-            var points = _projection.Points;
+            var points = _projection!.Points;
             var geometry = new StreamGeometry();
             using (var drawing = geometry.Open())
             {
@@ -276,11 +279,7 @@ namespace Cashflow.Windows.Controls
             Color color,
             double thickness)
         {
-            if (_projection == null)
-            {
-                return;
-            }
-            var points = _projection.Points;
+            var points = _projection!.Points;
             var geometry = new StreamGeometry();
             using (var drawing = geometry.Open())
             {
@@ -305,7 +304,7 @@ namespace Cashflow.Windows.Controls
         {
             var items = new[]
             {
-                (_projection != null && _projection.UsesInflationAdjustment ? "TOTAL REAL" : "TOTAL NOMINAL", Color.FromRgb(24, 191, 162)),
+                (_projection!.UsesInflationAdjustment ? "TOTAL REAL" : "TOTAL NOMINAL", Color.FromRgb(24, 191, 162)),
                 ("ACCIONES", Color.FromRgb(91, 141, 239)),
                 ("BONOS", Color.FromRgb(241, 185, 85))
             };

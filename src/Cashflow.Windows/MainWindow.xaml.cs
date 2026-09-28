@@ -22,10 +22,10 @@ namespace Cashflow.Windows
 {
     public partial class MainWindow : Window
     {
-        private readonly ScenarioStore _store = new ScenarioStore();
+        private readonly ScenarioStore _store;
         private readonly RouteCalculator _calculator = new RouteCalculator();
-        private readonly ScenarioMarketUpdater _marketUpdater = new ScenarioMarketUpdater();
-        private readonly ArgentinaExchangeRateService _argentinaRates = new ArgentinaExchangeRateService();
+        private readonly ScenarioMarketUpdater _marketUpdater;
+        private readonly ArgentinaExchangeRateService _argentinaRates;
         private readonly DispatcherTimer _marketTimer = new DispatcherTimer();
         private readonly FeeApplicationChoice[] _feeApplicationChoices =
         {
@@ -39,8 +39,14 @@ namespace Cashflow.Windows
         private bool _loading;
         private bool _marketRefreshInProgress;
 
-        public MainWindow()
+        public MainWindow(
+            ScenarioStore? store = null,
+            ScenarioMarketUpdater? marketUpdater = null,
+            ArgentinaExchangeRateService? argentinaRates = null)
         {
+            _store = store ?? new ScenarioStore();
+            _marketUpdater = marketUpdater ?? new ScenarioMarketUpdater();
+            _argentinaRates = argentinaRates ?? new ArgentinaExchangeRateService();
             InitializeComponent();
             NodeKindCombo.ItemsSource = Enum.GetValues(typeof(NodeKind));
             RouteFeeApplicationCombo.ItemsSource = _feeApplicationChoices;
@@ -54,7 +60,7 @@ namespace Cashflow.Windows
         {
             FitToCurrentWorkArea();
             _document = _store.Load();
-            MusicSessionHost.Content = new MusicSessionWindow(_document, _store);
+            MusicSessionHost.Content = new MusicSessionWindow(_document, _store, _marketUpdater, _argentinaRates);
             RetirementHost.Content = new RetirementView(_document, _store);
             _loading = true;
             ScenarioCombo.ItemsSource = _document.Scenarios;
@@ -81,20 +87,13 @@ namespace Cashflow.Windows
 
         private void Window_SourceInitialized(object? sender, EventArgs e)
         {
-            var handle = new WindowInteropHelper(this).Handle;
-            var enabled = 1;
-            if (DwmSetWindowAttribute(handle, 20, ref enabled, sizeof(int)) != 0)
-            {
-                DwmSetWindowAttribute(handle, 19, ref enabled, sizeof(int));
-            }
-            var rounded = 2;
-            DwmSetWindowAttribute(handle, 33, ref rounded, sizeof(int));
+            WindowTheme.ApplyDarkTitleBar(this);
         }
 
-        private void FitToCurrentWorkArea()
+        private void FitToCurrentWorkArea(Func<IntPtr, IntPtr>? locateMonitor = null)
         {
             var handle = new WindowInteropHelper(this).Handle;
-            var monitor = MonitorFromWindow(handle, 2);
+            var monitor = locateMonitor == null ? MonitorFromWindow(handle, 2) : locateMonitor(handle);
             var information = new MonitorInformation { Size = Marshal.SizeOf<MonitorInformation>() };
             if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref information))
             {
@@ -102,7 +101,7 @@ namespace Cashflow.Windows
             }
 
             var source = PresentationSource.FromVisual(this);
-            var fromDevice = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+            var fromDevice = source == null ? Matrix.Identity : source.CompositionTarget.TransformFromDevice;
             var topLeft = fromDevice.Transform(new Point(information.WorkArea.Left, information.WorkArea.Top));
             var bottomRight = fromDevice.Transform(new Point(information.WorkArea.Right, information.WorkArea.Bottom));
             const double margin = 14d;
@@ -118,9 +117,6 @@ namespace Cashflow.Windows
             Top = topLeft.Y + (bottomRight.Y - topLeft.Y - Height) / 2d;
             WindowState = WindowState.Normal;
         }
-
-        [DllImport("dwmapi.dll")]
-        private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
@@ -916,10 +912,8 @@ namespace Cashflow.Windows
                 _store.Save(_document);
                 SaveStatusText.Text = "Guardado localmente · " + DateTime.Now.ToString("HH:mm");
             }
-            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-            {
-                AppDialogWindow.ShowInfo(this, "No se pudo guardar el archivo local. " + exception.Message, "Calculadora");
-            }
+            catch (System.IO.IOException exception) { ShowSaveError(exception); }
+            catch (UnauthorizedAccessException exception) { ShowSaveError(exception); }
         }
 
         private void SaveSilently()
@@ -931,11 +925,15 @@ namespace Cashflow.Windows
                 _store.Save(_document);
                 SaveStatusText.Text = "Guardado localmente · " + DateTime.Now.ToString("HH:mm");
             }
-            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-            {
-                SaveStatusText.Text = "No se pudo guardar; usá Guardar cambios";
-            }
+            catch (System.IO.IOException) { ShowSilentSaveError(); }
+            catch (UnauthorizedAccessException) { ShowSilentSaveError(); }
         }
+
+        private void ShowSaveError(Exception exception) =>
+            AppDialogWindow.ShowInfo(this, "No se pudo guardar el archivo local. " + exception.Message, "Calculadora");
+
+        private void ShowSilentSaveError() =>
+            SaveStatusText.Text = "No se pudo guardar; usá Guardar cambios";
 
         private void SaveScenarioName()
         {

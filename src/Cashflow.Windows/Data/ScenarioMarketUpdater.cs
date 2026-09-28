@@ -10,7 +10,10 @@ namespace Cashflow.Windows.Data
 {
     public sealed class ScenarioMarketUpdater
     {
-        private readonly BinanceSpotQuoteService _binance = new BinanceSpotQuoteService();
+        private readonly BinanceSpotQuoteService _binance;
+
+        public ScenarioMarketUpdater(BinanceSpotQuoteService? binance = null) =>
+            _binance = binance ?? new BinanceSpotQuoteService();
 
         public async Task<ScenarioMarketUpdate> UpdateBinanceAsync(
             IEnumerable<CashflowScenario> scenarios,
@@ -63,7 +66,8 @@ namespace Cashflow.Windows.Data
                 return amount;
             }
 
-            var tradeableAmount = RouteCalculator.CalculateTransferAmountWithinBudget(route, amount);
+            var tradeableAmount = RouteCalculator.CalculateTransferAmountWithinBudget(
+                route, amount, requireConfiguredExchangeRate: false);
             var fee = RouteCalculator.CalculateInputFee(route, tradeableAmount);
             var result = route.FeeApplication == FeeApplicationMode.DeductFromAmount
                 ? tradeableAmount - fee

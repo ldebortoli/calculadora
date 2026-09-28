@@ -21,7 +21,6 @@
       <Exclude>
         <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
         <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
-        <Attribute>^System\.Runtime\.CompilerServices\.CompilerGeneratedAttribute$</Attribute>
       </Exclude>
     </Attributes>
     <CollectFromChildProcesses>True</CollectFromChildProcesses>

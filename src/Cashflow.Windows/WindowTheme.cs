@@ -12,30 +12,34 @@ internal static class WindowTheme
     private const int DwmWindowCornerPreference = 33;
     private const int DwmWindowCornerRound = 2;
 
-    public static void ApplyDarkTitleBar(Window window)
+    public static void ApplyDarkTitleBar(Window window, Func<IntPtr, int, int, int, int>? setAttribute = null)
     {
+        setAttribute ??= SetAttribute;
         if (new WindowInteropHelper(window).Handle != IntPtr.Zero)
         {
-            Apply(window);
+            Apply(window, setAttribute);
             return;
         }
 
-        window.SourceInitialized += (_, _) => Apply(window);
+        window.SourceInitialized += (_, _) => Apply(window, setAttribute);
     }
 
-    private static void Apply(Window window)
+    private static void Apply(Window window, Func<IntPtr, int, int, int, int> setAttribute)
     {
         var handle = new WindowInteropHelper(window).Handle;
         var enabled = 1;
         var rounded = DwmWindowCornerRound;
 
-        if (DwmSetWindowAttribute(handle, DwmUseImmersiveDarkMode, ref enabled, sizeof(int)) != 0)
+        if (setAttribute(handle, DwmUseImmersiveDarkMode, enabled, sizeof(int)) != 0)
         {
-            DwmSetWindowAttribute(handle, DwmUseImmersiveDarkModeBefore20H1, ref enabled, sizeof(int));
+            setAttribute(handle, DwmUseImmersiveDarkModeBefore20H1, enabled, sizeof(int));
         }
 
-        DwmSetWindowAttribute(handle, DwmWindowCornerPreference, ref rounded, sizeof(int));
+        setAttribute(handle, DwmWindowCornerPreference, rounded, sizeof(int));
     }
+
+    private static int SetAttribute(IntPtr handle, int attribute, int value, int size) =>
+        DwmSetWindowAttribute(handle, attribute, ref value, size);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);

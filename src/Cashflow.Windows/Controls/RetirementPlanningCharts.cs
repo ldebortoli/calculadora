@@ -64,11 +64,16 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (!_isPanning || e.RightButton != MouseButtonState.Pressed)
+            UpdatePan(e.GetPosition(this), e.RightButton == MouseButtonState.Pressed, e);
+        }
+
+        private void UpdatePan(Point pointer, bool rightPressed, MouseEventArgs e)
+        {
+            if (!_isPanning || !rightPressed)
             {
                 return;
             }
-            _panOffset = _panOrigin + (e.GetPosition(this) - _panStart);
+            _panOffset = _panOrigin + (pointer - _panStart);
             CoercePan();
             InvalidateVisual();
             e.Handled = true;
@@ -165,12 +170,17 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
+            SelectAt(e.GetPosition(this), e);
+        }
+
+        private void SelectAt(Point pointer, MouseButtonEventArgs e)
+        {
             if (!HasChartData || ActualWidth < 420d || ActualHeight < 170d)
             {
                 return;
             }
             var plot = new Rect(190d, 48d, Math.Max(1d, ActualWidth - 220d), Math.Max(1d, ActualHeight - 76d));
-            var cursor = ToChartPoint(e.GetPosition(this));
+            var cursor = ToChartPoint(pointer);
             if (cursor.Y < plot.Top || cursor.Y > plot.Bottom)
             {
                 return;
@@ -335,13 +345,18 @@ namespace Cashflow.Windows.Controls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
+            SelectAt(e.GetPosition(this), e);
+        }
+
+        private void SelectAt(Point pointer, MouseButtonEventArgs e)
+        {
             if (!HasChartData || _runway == null || ActualWidth < 320d || ActualHeight < 180d)
             {
                 return;
             }
             var plot = new Rect(66d, 26d, Math.Max(1d, ActualWidth - 92d), Math.Max(1d, ActualHeight - 72d));
             var maximumYear = Math.Max(_runway.TargetYears, _runway.Points[_runway.Points.Count - 1].Year);
-            var cursor = ToChartPoint(e.GetPosition(this));
+            var cursor = ToChartPoint(pointer);
             if (!plot.Contains(cursor))
             {
                 return;

@@ -9,8 +9,10 @@
         ResizeMode="NoResize"
         AllowsTransparency="True"
         Background="Transparent"
+        Icon="Assets/AppIcon.ico"
         ShowInTaskbar="False"
-        Topmost="True">
+        Topmost="True"
+        KeyDown="SplashWindow_KeyDown">
     <Border CornerRadius="28" BorderBrush="#2A3852" BorderThickness="1" Background="#0E1729">
         <Border.Effect>
             <DropShadowEffect Color="#07101F" BlurRadius="32" ShadowDepth="8" Opacity="0.45" />
@@ -26,6 +28,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Border Width="76" Height="76" CornerRadius="20" Background="#17243D" Margin="0,0,18,0">
                     <Image Source="Assets/AppIcon.png" Width="64" Height="64" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -35,6 +38,9 @@
                     <TextBlock Text="Calculadora" Foreground="White" FontSize="31" FontWeight="SemiBold" Margin="0,1,0,0" />
                     <TextBlock Text="Tu dinero, por el camino más conveniente." Foreground="#AAB7CB" FontSize="12" Margin="0,4,0,0" />
                 </StackPanel>
+                <Button x:Name="CloseSplashButton" Grid.Column="2" Content="×" Width="30" Height="30"
+                        VerticalAlignment="Top" Style="{StaticResource GhostButton}" Padding="0"
+                        FontSize="18" ToolTip="Cerrar" Click="CloseSplash_Click" />
             </Grid>
 
             <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,12,0,8">

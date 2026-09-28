@@ -14,12 +14,12 @@ namespace Cashflow.Windows.Data
 
         public string FilePath { get; }
 
-        public ScenarioStore()
+        public ScenarioStore(string? filePath = null)
         {
             var folder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "RutaCashflow");
-            FilePath = Path.Combine(folder, "scenarios.json");
+            FilePath = filePath ?? Path.Combine(folder, "scenarios.json");
         }
 
         public ScenarioDocument Load()

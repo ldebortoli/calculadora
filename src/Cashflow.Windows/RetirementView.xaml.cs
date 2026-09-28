@@ -161,6 +161,20 @@ namespace Cashflow.Windows
             RenderProjection();
         }
 
+        private void ToggleReserve_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is Button button) || !(button.Tag is RetirementReserveSettings reserve) ||
+                !TrySaveInputs(true))
+            {
+                return;
+            }
+
+            reserve.IsIncluded = !reserve.IsIncluded;
+            BuildReserveEditors();
+            TrySave();
+            RenderProjection();
+        }
+
         private async void RefreshInflation_Click(object sender, RoutedEventArgs e)
         {
             if (_refreshing || !TrySaveInputs(true))
@@ -274,21 +288,42 @@ namespace Cashflow.Windows
                 card.Child = root;
 
                 var header = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 7) };
+                var actions = new StackPanel { Orientation = Orientation.Horizontal };
+                var toggle = CreateRemoveButton(reserve.IsIncluded ? "Ocultar" : "Mostrar", reserve, ToggleReserve_Click);
+                toggle.ToolTip = reserve.IsIncluded
+                    ? "Excluir esta reserva de los cálculos y gráficos sin borrar sus datos"
+                    : "Volver a incluir esta reserva en los cálculos y gráficos";
+                actions.Children.Add(toggle);
                 if (string.IsNullOrEmpty(reserve.Kind))
                 {
                     var remove = CreateRemoveButton("Quitar", reserve, RemoveReserve_Click);
-                    DockPanel.SetDock(remove, Dock.Right);
-                    header.Children.Add(remove);
+                    remove.Margin = new Thickness(5, 0, 0, 0);
+                    actions.Children.Add(remove);
                 }
+                DockPanel.SetDock(actions, Dock.Right);
+                header.Children.Add(actions);
                 header.Children.Add(new TextBlock
                 {
-                    Text = "PRIORIDAD " + (index + 1),
-                    Foreground = new SolidColorBrush(Color.FromRgb(241, 185, 85)),
+                    Text = "PRIORIDAD " + (index + 1) + (reserve.IsIncluded ? string.Empty : " · OCULTA"),
+                    Foreground = new SolidColorBrush(reserve.IsIncluded
+                        ? Color.FromRgb(241, 185, 85)
+                        : Color.FromRgb(145, 160, 183)),
                     FontSize = 9,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center
                 });
                 root.Children.Add(header);
+                if (!reserve.IsIncluded)
+                {
+                    root.Children.Add(new TextBlock
+                    {
+                        Text = "No participa en los cálculos ni en los gráficos.",
+                        Foreground = new SolidColorBrush(Color.FromRgb(145, 160, 183)),
+                        FontSize = 9,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 0, 0, 7)
+                    });
+                }
 
                 var nameBox = new TextBox { Text = reserve.Name, Margin = new Thickness(0, 0, 0, 7) };
                 root.Children.Add(CreateField("Nombre de la reserva u objetivo", nameBox));

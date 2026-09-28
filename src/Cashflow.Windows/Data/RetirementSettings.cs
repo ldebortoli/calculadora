@@ -257,6 +257,7 @@ namespace Cashflow.Windows.Data
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
         public string Kind { get; set; } = string.Empty;
         public string Name { get; set; } = "Reserva";
+        public bool IsIncluded { get; set; } = true;
         public long CurrentCents { get; set; }
         public long TargetCents { get; set; }
         public int StartAfterMonths { get; set; }

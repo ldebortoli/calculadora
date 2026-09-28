@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,8 +40,10 @@ namespace Cashflow.Windows.Tests
                 RetirementCalculatesSixtyYearSustainableExpense();
                 RetirementInflationModeChangesRunway();
                 RetirementCompletesDeferredReservesAfterGoal();
+                RetirementHiddenReservesDoNotAffectCalculations();
+                RetirementReserveVisibilityPersistsAndLegacyDefaultsToShown();
                 RetirementChartsCaptureWheelAtMinimumZoom();
-                Console.WriteLine("Resultado: 21 correctas, 0 fallidas.");
+                Console.WriteLine("Resultado: 23 correctas, 0 fallidas.");
                 return 0;
             }
             catch (Exception exception)
@@ -324,6 +328,13 @@ namespace Cashflow.Windows.Tests
                     var window = new ManualExchangeRatesWindow(StarterScenarioFactory.CreateStarterDocument(), new ScenarioStore());
                     True(window.FindName("RatesPanel") is StackPanel panel && panel.Children.Count == 2);
                     True(window.FindName("StatusText") is TextBlock);
+                    VerifyRetirementReserveToggleInUi();
+                    var splash = new SplashWindow();
+                    splash.Show();
+                    var closeButton = splash.FindName("CloseSplashButton") as Button;
+                    True(closeButton != null);
+                    closeButton!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    True(!splash.IsVisible);
                     window.Close();
                 }
                 catch (Exception exception)
@@ -337,6 +348,54 @@ namespace Cashflow.Windows.Tests
             if (windowError != null)
             {
                 throw new InvalidOperationException("El editor global de cotizaciones no pudo construirse: " + windowError);
+            }
+        }
+
+        private static void VerifyRetirementReserveToggleInUi()
+        {
+            var filePath = Path.Combine(Path.GetTempPath(), "cashflow-retirement-test-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var document = StarterScenarioFactory.CreateStarterDocument();
+                document.Retirement.EnsurePlanningCollections();
+                var reserve = document.Retirement.Reserves[0];
+                reserve.Name = "Casa";
+                reserve.TargetCents = 2000000;
+                var view = new RetirementView(document, new ScenarioStore(filePath));
+                view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+                var cards = view.FindName("ReserveRowsPanel") as StackPanel;
+                True(cards != null);
+                Equal(3, cards!.Children.Count);
+
+                Button ToggleButton()
+                {
+                    var root = (StackPanel)((Border)cards.Children[0]).Child;
+                    var actions = (StackPanel)((DockPanel)root.Children[0]).Children[0];
+                    return (Button)actions.Children[0];
+                }
+
+                Equal("Ocultar", ToggleButton().Content);
+                ToggleButton().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                True(!reserve.IsIncluded);
+                Equal(3, cards.Children.Count);
+                Equal("Mostrar", ToggleButton().Content);
+                True(File.Exists(filePath));
+                var saved = JsonSerializer.Deserialize<ScenarioDocument>(File.ReadAllText(filePath))!;
+                True(!saved.Retirement.Reserves[0].IsIncluded);
+                Equal(2000000L, saved.Retirement.Reserves[0].TargetCents);
+
+                ToggleButton().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                True(reserve.IsIncluded);
+                Equal("Ocultar", ToggleButton().Content);
+                saved = JsonSerializer.Deserialize<ScenarioDocument>(File.ReadAllText(filePath))!;
+                True(saved.Retirement.Reserves[0].IsIncluded);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
             }
         }
 
@@ -438,6 +497,59 @@ namespace Cashflow.Windows.Tests
             Equal(4, reserve.ReachedMonth!.Value);
             Equal(4, projection.Points[projection.Points.Count - 1].Month);
             Near(200d, projection.FinalBondsRealUsd);
+        }
+
+        private static void RetirementHiddenReservesDoNotAffectCalculations()
+        {
+            var settings = CreateRetirementSettings();
+            settings.MonthlyIncomes[0].MonthlyAmountCents = 10000;
+            settings.TargetInvestedCents = 20000;
+            var reserve = settings.Reserves[0];
+            reserve.Name = "Objetivo temporal";
+            reserve.CurrentCents = 5000;
+            reserve.TargetCents = 10000;
+            var calculator = new RetirementCalculator();
+
+            var shown = calculator.Calculate(settings);
+            Equal(3, shown.MonthsToTarget!.Value);
+            Equal(1, shown.ReserveGoals.Count(goal => goal.TargetUsd > 0d));
+            Near(50d, shown.Runway.InitialLiquidReservesUsd);
+
+            reserve.IsIncluded = false;
+            var hidden = calculator.Calculate(settings);
+            Equal(2, hidden.MonthsToTarget!.Value);
+            Equal(0, hidden.ReserveGoals.Count(goal => goal.TargetUsd > 0d));
+            Near(0d, hidden.TotalReservedUsd);
+            Near(0d, hidden.Runway.InitialLiquidReservesUsd);
+            Near(0d, hidden.Runway.SustainableMonthlyExpenseUsd);
+            Equal(3, settings.Reserves.Count);
+            Equal(5000L, reserve.CurrentCents);
+            Equal(10000L, reserve.TargetCents);
+
+            reserve.IsIncluded = true;
+            var restored = calculator.Calculate(settings);
+            Equal(shown.MonthsToTarget, restored.MonthsToTarget);
+            Near(shown.Runway.InitialLiquidReservesUsd, restored.Runway.InitialLiquidReservesUsd);
+            Equal(1, restored.ReserveGoals.Count(goal => goal.TargetUsd > 0d));
+        }
+
+        private static void RetirementReserveVisibilityPersistsAndLegacyDefaultsToShown()
+        {
+            var reserve = new RetirementReserveSettings
+            {
+                Name = "Casa",
+                CurrentCents = 12345,
+                TargetCents = 2000000,
+                IsIncluded = false
+            };
+            var restored = JsonSerializer.Deserialize<RetirementReserveSettings>(JsonSerializer.Serialize(reserve))!;
+            True(!restored.IsIncluded);
+            Equal(reserve.Name, restored.Name);
+            Equal(reserve.CurrentCents, restored.CurrentCents);
+            Equal(reserve.TargetCents, restored.TargetCents);
+
+            var legacy = JsonSerializer.Deserialize<RetirementReserveSettings>("{\"Name\":\"Reserva anterior\"}")!;
+            True(legacy.IsIncluded);
         }
 
         private static void RetirementChartsCaptureWheelAtMinimumZoom()

@@ -36,6 +36,12 @@ namespace Cashflow.Windows
 
             await Task.Delay(850);
 
+            if (!splash.IsVisible)
+            {
+                Shutdown();
+                return;
+            }
+
             var window = new MainWindow();
             MainWindow = window;
             window.Show();

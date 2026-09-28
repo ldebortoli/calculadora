@@ -30,7 +30,7 @@ namespace Cashflow.Windows.Data
                 : 0d;
             var inflationFactor = 1d;
             var contributions = 0d;
-            var reserves = settings.Reserves.Select(ReserveState.FromSettings).ToList();
+            var reserves = settings.Reserves.Where(reserve => reserve.IsIncluded).Select(ReserveState.FromSettings).ToList();
             foreach (var reserve in reserves)
             {
                 if (reserve.Target > 0d && reserve.Current >= reserve.Target)
@@ -162,7 +162,7 @@ namespace Cashflow.Windows.Data
         {
             var stocks = ToDollars(settings.InitialStocksCents);
             var bonds = ToDollars(settings.InitialBondsCents);
-            var liquidReserves = settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
+            var liquidReserves = settings.Reserves.Where(reserve => reserve.IsIncluded).Sum(reserve => ToDollars(reserve.CurrentCents));
             var initialLiquidReserves = liquidReserves;
             var ordinaryExpense = ToDollars(settings.OrdinaryMonthlyExpensesCents) +
                 ToDollars(settings.AnnualVacationExpensesCents) / 12d;
@@ -241,7 +241,7 @@ namespace Cashflow.Windows.Data
         {
             var initialAssets = ToDollars(settings.InitialStocksCents) +
                 ToDollars(settings.InitialBondsCents) +
-                settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
+                settings.Reserves.Where(reserve => reserve.IsIncluded).Sum(reserve => ToDollars(reserve.CurrentCents));
             if (initialAssets <= 0d || targetMonths <= 0)
             {
                 return 0d;
@@ -268,7 +268,7 @@ namespace Cashflow.Windows.Data
         {
             var stocks = ToDollars(settings.InitialStocksCents);
             var bonds = ToDollars(settings.InitialBondsCents);
-            var reserves = settings.Reserves.Sum(reserve => ToDollars(reserve.CurrentCents));
+            var reserves = settings.Reserves.Where(reserve => reserve.IsIncluded).Sum(reserve => ToDollars(reserve.CurrentCents));
             var stockMonthlyRate = MonthlyEquivalent(settings.StockAnnualReturnPercentage);
             var bondMonthlyRate = MonthlyEquivalent(settings.BondAnnualReturnPercentage);
             var inflationMonthlyRate = settings.UseInflationAdjustment

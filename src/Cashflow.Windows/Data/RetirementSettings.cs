@@ -27,6 +27,7 @@ namespace Cashflow.Windows.Data
 
         public List<RetirementIncomeSettings> MonthlyIncomes { get; set; } = new List<RetirementIncomeSettings>();
         public List<RetirementReserveSettings> Reserves { get; set; } = new List<RetirementReserveSettings>();
+        public bool PlanningCollectionsInitialized { get; set; }
 
         public long TargetInvestedCents { get; set; } = 50000000;
         public long? TargetStocksCents { get; set; }
@@ -103,67 +104,69 @@ namespace Cashflow.Windows.Data
                 MonthlyIncomes = new List<RetirementIncomeSettings>();
                 changed = true;
             }
-            if (MonthlyIncomes.Count == 0)
-            {
-                MonthlyIncomes.Add(new RetirementIncomeSettings
-                {
-                    Name = "Trabajo 1",
-                    MonthlyAmountCents = MonthlyIncomeCents
-                });
-                changed = true;
-            }
-
             if (Reserves == null)
             {
                 Reserves = new List<RetirementReserveSettings>();
                 changed = true;
             }
-            if (Reserves.Count == 0)
+            if (!PlanningCollectionsInitialized)
             {
-                Reserves.Add(CreateReserve(
-                    "cash-flow",
-                    "Reserva cash flow",
-                    CashFlowReserveCurrentCents,
-                    CashFlowReserveTargetCents,
-                    CashFlowReserveStartAfterMonths,
-                    CashFlowReserveMonthlyCapCents));
-                Reserves.Add(CreateReserve("emergency", "Fondo de emergencia líquido", 0, 0, 0, 0));
-                Reserves.Add(CreateReserve(
-                    "vacation",
-                    "Reserva vacaciones",
-                    VacationReserveCurrentCents,
-                    VacationReserveTargetCents,
-                    VacationReserveStartAfterMonths,
-                    VacationReserveMonthlyCapCents));
+                if (MonthlyIncomes.Count == 0)
+                {
+                    MonthlyIncomes.Add(new RetirementIncomeSettings
+                    {
+                        Name = "Trabajo 1",
+                        MonthlyAmountCents = MonthlyIncomeCents
+                    });
+                }
+                if (Reserves.Count == 0)
+                {
+                    Reserves.Add(CreateReserve(
+                        "cash-flow",
+                        "Reserva cash flow",
+                        CashFlowReserveCurrentCents,
+                        CashFlowReserveTargetCents,
+                        CashFlowReserveStartAfterMonths,
+                        CashFlowReserveMonthlyCapCents));
+                    Reserves.Add(CreateReserve("emergency", "Fondo de emergencia líquido", 0, 0, 0, 0));
+                    Reserves.Add(CreateReserve(
+                        "vacation",
+                        "Reserva vacaciones",
+                        VacationReserveCurrentCents,
+                        VacationReserveTargetCents,
+                        VacationReserveStartAfterMonths,
+                        VacationReserveMonthlyCapCents));
+                }
+                else
+                {
+                    changed |= EnsureBuiltInReserve(
+                        "cash-flow",
+                        "Reserva cash flow",
+                        CashFlowReserveCurrentCents,
+                        CashFlowReserveTargetCents,
+                        CashFlowReserveStartAfterMonths,
+                        CashFlowReserveMonthlyCapCents,
+                        0);
+                    var vacationIndex = Reserves.FindIndex(reserve => reserve.Kind == "vacation");
+                    changed |= EnsureBuiltInReserve(
+                        "emergency",
+                        "Fondo de emergencia líquido",
+                        0,
+                        0,
+                        0,
+                        0,
+                        vacationIndex >= 0 ? vacationIndex : Reserves.Count);
+                    changed |= EnsureBuiltInReserve(
+                        "vacation",
+                        "Reserva vacaciones",
+                        VacationReserveCurrentCents,
+                        VacationReserveTargetCents,
+                        VacationReserveStartAfterMonths,
+                        VacationReserveMonthlyCapCents,
+                        Reserves.Count);
+                }
+                PlanningCollectionsInitialized = true;
                 changed = true;
-            }
-            else
-            {
-                changed |= EnsureBuiltInReserve(
-                    "cash-flow",
-                    "Reserva cash flow",
-                    CashFlowReserveCurrentCents,
-                    CashFlowReserveTargetCents,
-                    CashFlowReserveStartAfterMonths,
-                    CashFlowReserveMonthlyCapCents,
-                    0);
-                var vacationIndex = Reserves.FindIndex(reserve => reserve.Kind == "vacation");
-                changed |= EnsureBuiltInReserve(
-                    "emergency",
-                    "Fondo de emergencia líquido",
-                    0,
-                    0,
-                    0,
-                    0,
-                    vacationIndex >= 0 ? vacationIndex : Reserves.Count);
-                changed |= EnsureBuiltInReserve(
-                    "vacation",
-                    "Reserva vacaciones",
-                    VacationReserveCurrentCents,
-                    VacationReserveTargetCents,
-                    VacationReserveStartAfterMonths,
-                    VacationReserveMonthlyCapCents,
-                    Reserves.Count);
             }
 
             foreach (var income in MonthlyIncomes)
@@ -249,6 +252,7 @@ namespace Cashflow.Windows.Data
     {
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
         public string Name { get; set; } = "Trabajo";
+        public bool IsIncluded { get; set; } = true;
         public long MonthlyAmountCents { get; set; }
     }
 

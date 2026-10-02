@@ -666,6 +666,7 @@ namespace Cashflow.Windows.Tests
                     True(window.FindName("RatesPanel") is StackPanel panel && panel.Children.Count == 2);
                     True(window.FindName("StatusText") is TextBlock);
                     VerifyRetirementReserveToggleInUi();
+                    RetirementCardActionsTests.Run();
                     VerifyMainWindowFlowInUi();
                     VerifyGraphGeometryAndStylesInUi();
                     VerifyRetirementInflationRefreshInUi();

@@ -13,7 +13,8 @@ namespace Cashflow.Windows.Data
             settings.EnsurePlanningCollections();
             Validate(settings);
 
-            var monthlyIncome = settings.MonthlyIncomes.Sum(income => ToDollars(income.MonthlyAmountCents));
+            var monthlyIncome = settings.MonthlyIncomes.Where(income => income.IsIncluded)
+                .Sum(income => ToDollars(income.MonthlyAmountCents));
             var ordinaryExpenses = ToDollars(settings.OrdinaryMonthlyExpensesCents);
             var vacationExpenses = ToDollars(settings.AnnualVacationExpensesCents) / 12d;
             var musicExpense = ToDollars(settings.MusicSessionMonthlyExpenseCents);

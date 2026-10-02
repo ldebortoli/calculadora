@@ -122,11 +122,24 @@ namespace Cashflow.Windows
         private void RemoveIncome_Click(object sender, RoutedEventArgs e)
         {
             if (!(sender is Button button) || !(button.Tag is RetirementIncomeSettings income) ||
-                _document.Retirement.MonthlyIncomes.Count <= 1 || !TrySaveInputs(true))
+                !TrySaveInputs(true))
             {
                 return;
             }
             _document.Retirement.MonthlyIncomes.Remove(income);
+            BuildIncomeEditors();
+            TrySave();
+            RenderProjection();
+        }
+
+        private void ToggleIncome_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is Button button) || !(button.Tag is RetirementIncomeSettings income) ||
+                !TrySaveInputs(true))
+            {
+                return;
+            }
+            income.IsIncluded = !income.IsIncluded;
             BuildIncomeEditors();
             TrySave();
             RenderProjection();
@@ -152,7 +165,7 @@ namespace Cashflow.Windows
         private void RemoveReserve_Click(object sender, RoutedEventArgs e)
         {
             if (!(sender is Button button) || !(button.Tag is RetirementReserveSettings reserve) ||
-                !string.IsNullOrEmpty(reserve.Kind) || !TrySaveInputs(true))
+                !TrySaveInputs(true))
             {
                 return;
             }
@@ -255,21 +268,39 @@ namespace Cashflow.Windows
                 card.Child = root;
 
                 var header = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 7) };
-                if (incomes.Count > 1)
-                {
-                    var remove = CreateRemoveButton("Quitar", income, RemoveIncome_Click);
-                    DockPanel.SetDock(remove, Dock.Right);
-                    header.Children.Add(remove);
-                }
+                var actions = new StackPanel { Orientation = Orientation.Horizontal };
+                var toggle = CreateRemoveButton(income.IsIncluded ? "Ocultar" : "Mostrar", income, ToggleIncome_Click);
+                toggle.ToolTip = income.IsIncluded
+                    ? "Excluir este ingreso de los cálculos y gráficos sin borrar sus datos"
+                    : "Volver a incluir este ingreso en los cálculos y gráficos";
+                actions.Children.Add(toggle);
+                var remove = CreateRemoveButton("Quitar", income, RemoveIncome_Click);
+                remove.Margin = new Thickness(5, 0, 0, 0);
+                actions.Children.Add(remove);
+                DockPanel.SetDock(actions, Dock.Right);
+                header.Children.Add(actions);
                 header.Children.Add(new TextBlock
                 {
-                    Text = "INGRESO " + (index + 1),
-                    Foreground = new SolidColorBrush(Color.FromRgb(100, 228, 200)),
+                    Text = "INGRESO " + (index + 1) + (income.IsIncluded ? string.Empty : " · OCULTO"),
+                    Foreground = new SolidColorBrush(income.IsIncluded
+                        ? Color.FromRgb(100, 228, 200)
+                        : Color.FromRgb(145, 160, 183)),
                     FontSize = 9,
                     FontWeight = FontWeights.Bold,
                     VerticalAlignment = VerticalAlignment.Center
                 });
                 root.Children.Add(header);
+                if (!income.IsIncluded)
+                {
+                    root.Children.Add(new TextBlock
+                    {
+                        Text = "No participa en los cálculos ni en los gráficos.",
+                        Foreground = new SolidColorBrush(Color.FromRgb(145, 160, 183)),
+                        FontSize = 9,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 0, 0, 7)
+                    });
+                }
 
                 var nameBox = new TextBox { Text = income.Name };
                 var amountBox = new TextBox { Text = FormatMoneyInput(income.MonthlyAmountCents) };
@@ -299,12 +330,9 @@ namespace Cashflow.Windows
                     ? "Excluir esta reserva de los cálculos y gráficos sin borrar sus datos"
                     : "Volver a incluir esta reserva en los cálculos y gráficos";
                 actions.Children.Add(toggle);
-                if (string.IsNullOrEmpty(reserve.Kind))
-                {
-                    var remove = CreateRemoveButton("Quitar", reserve, RemoveReserve_Click);
-                    remove.Margin = new Thickness(5, 0, 0, 0);
-                    actions.Children.Add(remove);
-                }
+                var remove = CreateRemoveButton("Quitar", reserve, RemoveReserve_Click);
+                remove.Margin = new Thickness(5, 0, 0, 0);
+                actions.Children.Add(remove);
                 DockPanel.SetDock(actions, Dock.Right);
                 header.Children.Add(actions);
                 header.Children.Add(new TextBlock
@@ -606,8 +634,8 @@ namespace Cashflow.Windows
             {
                 TargetDateText.Text = projection.EstimatedTargetDate.Value.ToString("MMMM yyyy", MoneyCulture);
                 TargetDateDetailText.Text = projection.UsesInflationAdjustment
-                    ? $"{projection.MonthsToTarget.Value} meses · objetivo nominal estimado {FormatMoney(projection.TargetNominalAtGoalUsd)}"
-                    : $"{projection.MonthsToTarget.Value} meses · objetivo nominal fijo {FormatMoney(projection.TargetRealUsd)}";
+                    ? $"{FormatTargetDuration(projection.MonthsToTarget.Value)} · objetivo nominal estimado {FormatMoney(projection.TargetNominalAtGoalUsd)}"
+                    : $"{FormatTargetDuration(projection.MonthsToTarget.Value)} · objetivo nominal fijo {FormatMoney(projection.TargetRealUsd)}";
             }
             else
             {
@@ -788,6 +816,13 @@ namespace Cashflow.Windows
 
         private static string FormatMoney(double value) =>
             value.ToString("N2", MoneyCulture) + " USD";
+
+        private static string FormatTargetDuration(int months)
+        {
+            var totalMonths = months == 1 ? "1 mes" : months + " meses";
+            var years = months == 0 ? "0 años" : months < 12 ? "menos de 1 año" : FormatDuration(months);
+            return totalMonths + " · " + years;
+        }
 
         private static string FormatDuration(int months)
         {

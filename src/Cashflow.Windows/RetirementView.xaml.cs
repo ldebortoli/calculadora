@@ -251,6 +251,8 @@ namespace Cashflow.Windows
             WithdrawalRateBox.Text = FormatInput(settings.WithdrawalRatePercentage);
             InflationBox.Text = FormatInput(settings.UsInflationPercentage);
             RunwayTargetYearsBox.Text = settings.EmergencyRunwayTargetYears.ToString(CultureInfo.CurrentCulture);
+            CoastCurrentAgeBox.Text = settings.CoastCurrentAge.ToString(CultureInfo.CurrentCulture);
+            CoastTargetAgesBox.Text = string.Join(", ", settings.CoastTargetAges);
             BuildIncomeEditors();
             BuildReserveEditors();
         }
@@ -499,6 +501,10 @@ namespace Cashflow.Windows
             {
                 return ValidationError("El horizonte de autonomía debe ser un entero entre 1 y 100 años.", showErrors);
             }
+            if (!TryReadCoastInputs(showErrors, out var coastCurrentAge, out var coastTargetAges))
+            {
+                return false;
+            }
             if (!TryRange(StockReturnBox.Text, -99.99m, 100m, out var stockReturn) ||
                 !TryRange(BondReturnBox.Text, -99.99m, 100m, out var bondReturn))
             {
@@ -553,7 +559,29 @@ namespace Cashflow.Windows
             settings.UsInflationPercentage = inflation;
             settings.WithdrawalRatePercentage = withdrawal;
             settings.EmergencyRunwayTargetYears = runwayTargetYears;
+            settings.CoastCurrentAge = coastCurrentAge;
+            settings.CoastTargetAges = coastTargetAges;
             UpdateVacationProration(annualVacation);
+            return true;
+        }
+
+        private bool TryReadCoastInputs(bool showErrors, out int currentAge, out List<int> targetAges)
+        {
+            targetAges = new List<int>();
+            if (!int.TryParse(CoastCurrentAgeBox.Text.Trim(), out currentAge) || currentAge < 0 || currentAge > 120)
+            {
+                return ValidationError("Tu edad actual debe ser un entero entre 0 y 120 años.", showErrors);
+            }
+            var entries = CoastTargetAgesBox.Text.Split(new[] { ',', ';', ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var entry in entries)
+            {
+                if (!int.TryParse(entry, out var age) || age < currentAge || age > currentAge + RetirementCalculator.MaximumProjectionYears)
+                {
+                    return ValidationError($"Las edades de jubilación deben ser enteros entre {currentAge} y {currentAge + RetirementCalculator.MaximumProjectionYears}, separados por comas.", showErrors);
+                }
+                targetAges.Add(age);
+            }
+            targetAges = targetAges.Distinct().OrderBy(age => age).ToList();
             return true;
         }
 
@@ -649,6 +677,7 @@ namespace Cashflow.Windows
             BondAllocationText.Text = "Reciben aportes después de completar acciones";
             ContributionsText.Text = "Aportes nuevos: " + FormatMoney(projection.TotalNewContributionsUsd);
             GrowthText.Text = "Rendimiento nominal: " + FormatMoney(projection.TotalNominalGrowthUsd);
+            RenderCoastScenarios(projection.CoastScenarios);
 
             var activeGoals = projection.ReserveGoals.Where(goal => goal.TargetUsd > 0d).ToList();
             var completedGoals = activeGoals.Count(goal => goal.ReachedMonth.HasValue);
@@ -669,6 +698,53 @@ namespace Cashflow.Windows
                     : "El gráfico principal termina en el primer mes en que la cartera supera el objetivo nominal fijo."
                 : "Se muestran 100 años de proyección. Aumentá el aporte, ajustá el objetivo o revisá los supuestos para alcanzarlo antes.";
             ProjectionChart.ShowProjection(projection);
+        }
+
+        private void RenderCoastScenarios(IReadOnlyList<CoastFireScenario> scenarios)
+        {
+            CoastResultsPanel.Visibility = scenarios.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            CoastScenarioRowsPanel.Children.Clear();
+            foreach (var scenario in scenarios)
+            {
+                var content = new StackPanel();
+                content.Children.Add(new TextBlock
+                {
+                    Text = $"JUBILACIÓN A LOS {scenario.RetirementAge} AÑOS",
+                    Foreground = new SolidColorBrush(Color.FromRgb(182, 166, 210)),
+                    FontSize = 9,
+                    FontWeight = FontWeights.Bold
+                });
+                content.Children.Add(new TextBlock
+                {
+                    Text = BuildCoastStatus(scenario, _document.Retirement.CoastCurrentAge),
+                    Foreground = (Brush)FindResource("InkBrush"),
+                    FontSize = 10,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 5, 0, 0)
+                });
+                CoastScenarioRowsPanel.Children.Add(new Border
+                {
+                    Width = 210,
+                    Background = (Brush)FindResource("SurfaceRaisedBrush"),
+                    BorderBrush = (Brush)FindResource("BorderBrush"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(9),
+                    Padding = new Thickness(12),
+                    Margin = new Thickness(0, 0, 8, 8),
+                    Child = content
+                });
+            }
+        }
+
+        private static string BuildCoastStatus(CoastFireScenario scenario, int currentAge)
+        {
+            var point = scenario.ReachedPoint;
+            if (point == null)
+            {
+                return "No se alcanza COAST con estos supuestos antes de esa edad.";
+            }
+            var timing = point.Month == 0 ? "COAST hoy" : $"COAST en {FormatTargetDuration(point.Month)}";
+            return $"{timing}\nEdad: {FormatDuration(currentAge * 12 + point.Month)} · {DateTime.Today.AddMonths(point.Month).ToString("MMM yyyy", MoneyCulture)}\nCartera: {FormatMoney(point.TotalRealUsd)}";
         }
 
         private void RenderRunway(RetirementRunway runway)

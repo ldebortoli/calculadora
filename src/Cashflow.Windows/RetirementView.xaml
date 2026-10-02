@@ -44,6 +44,15 @@
                         <TextBox x:Name="TargetInvestedBox" Text="500.000,00" FontSize="17" FontWeight="SemiBold" LostFocus="MoneyBox_LostFocus" />
 
                         <Border Height="1" Background="#263248" Margin="0,17,0,15" />
+                        <TextBlock Text="ESCENARIOS COAST FIRE" Foreground="#B6A6D2" FontSize="10" FontWeight="Bold" />
+                        <TextBlock Text="Tu edad actual (años cumplidos)" Foreground="#D2DAE6" FontSize="10" Margin="0,8,0,4" />
+                        <TextBox x:Name="CoastCurrentAgeBox" Text="29" />
+                        <TextBlock Text="Edades de jubilación a comparar" Foreground="#D2DAE6" FontSize="10" Margin="0,9,0,4" />
+                        <TextBox x:Name="CoastTargetAgesBox" Text="40, 50, 60, 65" />
+                        <TextBlock Text="Separalas con comas. Podés agregar o quitar edades; vacío oculta la comparación."
+                                   Foreground="#8F9CB0" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
+
+                        <Border Height="1" Background="#263248" Margin="0,17,0,15" />
                         <TextBlock Text="FLUJO MENSUAL" Foreground="#8090AA" FontSize="10" FontWeight="Bold" />
                         <TextBlock Text="Ingresos mensuales por trabajo (USD)" Foreground="#D2DAE6" FontSize="10" Margin="0,8,0,4" />
                         <StackPanel x:Name="IncomeRowsPanel" />
@@ -146,7 +155,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="340" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -203,9 +212,17 @@
                     </Border>
                 </Grid>
 
-                <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
-                    <controls:RetirementProjectionChart x:Name="ProjectionChart" />
-                </Border>
+                <StackPanel Grid.Row="2">
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True" Height="340">
+                        <controls:RetirementProjectionChart x:Name="ProjectionChart" />
+                    </Border>
+                    <StackPanel x:Name="CoastResultsPanel" Margin="0,13,0,0">
+                        <TextBlock Text="COAST FIRE · cuándo podrías dejar de aportar" Foreground="#B6A6D2" FontSize="12" FontWeight="SemiBold" />
+                        <TextBlock Text="Cada punto marca el primer mes en que la cartera podría alcanzar el objetivo a la edad elegida, sin más aportes ni retiros. Tus gastos hasta entonces se cubren con otros ingresos. Usa los retornos y el modo de inflación configurados; las reservas líquidas no cuentan."
+                                   Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,8" />
+                        <WrapPanel x:Name="CoastScenarioRowsPanel" />
+                    </StackPanel>
+                </StackPanel>
 
                 <Grid Grid.Row="3" Margin="0,13,0,0">
                     <Grid.ColumnDefinitions>

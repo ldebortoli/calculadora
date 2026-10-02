@@ -40,8 +40,17 @@ namespace Cashflow.Windows.Data
                 }
             }
             var points = new List<RetirementProjectionPoint>();
-
-            AddPoint(points, 0, stocks, bonds, inflationFactor);
+            var coastScenarios = settings.CoastTargetAges.Distinct().OrderBy(age => age)
+                .Select(age => new CoastFireScenario
+                {
+                    RetirementAge = age,
+                    MonthsUntilRetirement = (age - settings.CoastCurrentAge) * 12
+                }).ToList();
+            var stockRealMonthlyFactor = (1d + stockMonthlyRate) / (1d + inflationMonthlyRate);
+            var bondRealMonthlyFactor = (1d + bondMonthlyRate) / (1d + inflationMonthlyRate);
+            var initialPoint = CreatePoint(0, stocks, bonds, inflationFactor);
+            points.Add(initialPoint);
+            FindCoastCrossings(coastScenarios, initialPoint, target, stockRealMonthlyFactor, bondRealMonthlyFactor);
             var reachedMonth = stocks + bonds >= target ? 0 : (int?)null;
             var targetInflationFactor = 1d;
             var maximumMonths = MaximumProjectionYears * 12;
@@ -100,9 +109,11 @@ namespace Cashflow.Windows.Data
                     targetInflationFactor = inflationFactor;
                 }
                 var allReservesComplete = reserves.All(reserve => reserve.Target <= 0d || reserve.ReachedMonth.HasValue);
-                if (month % 12 == 0 || reachedThisMonth || (reachedMonth.HasValue && allReservesComplete))
+                var point = CreatePoint(month, stocks, bonds, inflationFactor);
+                var reachedCoast = FindCoastCrossings(coastScenarios, point, target, stockRealMonthlyFactor, bondRealMonthlyFactor);
+                if (month % 12 == 0 || reachedThisMonth || (reachedMonth.HasValue && allReservesComplete) || reachedCoast)
                 {
-                    AddPoint(points, month, stocks, bonds, inflationFactor);
+                    points.Add(point);
                 }
             }
 
@@ -132,9 +143,36 @@ namespace Cashflow.Windows.Data
                 TotalNominalGrowthUsd = finalPoint.TotalNominalUsd - initial - contributions,
                 TotalReservedUsd = reserveGoals.Sum(goal => Math.Max(0d, goal.FinalUsd - goal.InitialCurrentUsd)),
                 ReserveGoals = reserveGoals,
+                CoastScenarios = coastScenarios,
                 Runway = CalculateRunway(settings),
                 Points = points
             };
+        }
+
+        private static bool FindCoastCrossings(
+            IReadOnlyList<CoastFireScenario> scenarios,
+            RetirementProjectionPoint point,
+            double target,
+            double stockRealMonthlyFactor,
+            double bondRealMonthlyFactor)
+        {
+            var found = false;
+            foreach (var scenario in scenarios)
+            {
+                if (scenario.ReachedPoint != null || point.Month > scenario.MonthsUntilRetirement)
+                {
+                    continue;
+                }
+                var remainingMonths = scenario.MonthsUntilRetirement - point.Month;
+                var futureValue = point.StocksRealUsd * Math.Pow(stockRealMonthlyFactor, remainingMonths) +
+                                  point.BondsRealUsd * Math.Pow(bondRealMonthlyFactor, remainingMonths);
+                if (futureValue >= target - 0.00000001d)
+                {
+                    scenario.ReachedPoint = point;
+                    found = true;
+                }
+            }
+            return found;
         }
 
         private static IReadOnlyList<RetirementReserveGoal> BuildReserveGoals(
@@ -335,6 +373,14 @@ namespace Cashflow.Windows.Data
             {
                 throw new ArgumentException("El horizonte de autonomía debe estar entre 1 y 100 años.");
             }
+            if (settings.CoastCurrentAge < 0 || settings.CoastCurrentAge > 120)
+            {
+                throw new ArgumentException("La edad actual debe estar entre 0 y 120 años.");
+            }
+            if (settings.CoastTargetAges.Any(age => age < settings.CoastCurrentAge || age > settings.CoastCurrentAge + MaximumProjectionYears))
+            {
+                throw new ArgumentException("Cada edad de jubilación COAST debe estar entre la edad actual y 100 años después.");
+            }
             ValidatePercentage(settings.StockAnnualReturnPercentage, -99.99m, 100m, "El retorno de acciones");
             ValidatePercentage(settings.BondAnnualReturnPercentage, -99.99m, 100m, "El retorno de bonos");
             ValidatePercentage(settings.UsInflationPercentage, -99.99m, 100m, "La inflación");
@@ -366,14 +412,12 @@ namespace Cashflow.Windows.Data
 
         private static double ToDollars(long cents) => cents / 100d;
 
-        private static void AddPoint(
-            ICollection<RetirementProjectionPoint> points,
+        private static RetirementProjectionPoint CreatePoint(
             int month,
             double stocks,
             double bonds,
-            double inflationFactor)
-        {
-            points.Add(new RetirementProjectionPoint
+            double inflationFactor) =>
+            new RetirementProjectionPoint
             {
                 Month = month,
                 Year = month / 12d,
@@ -382,8 +426,7 @@ namespace Cashflow.Windows.Data
                 TotalRealUsd = (stocks + bonds) / inflationFactor,
                 TotalNominalUsd = stocks + bonds,
                 InflationFactor = inflationFactor
-            });
-        }
+            };
 
         private static void AddRunwayPoint(
             ICollection<RetirementRunwayPoint> points,
@@ -462,8 +505,16 @@ namespace Cashflow.Windows.Data
         public double TotalNominalGrowthUsd { get; set; }
         public double TotalReservedUsd { get; set; }
         public IReadOnlyList<RetirementReserveGoal> ReserveGoals { get; set; } = Array.Empty<RetirementReserveGoal>();
+        public IReadOnlyList<CoastFireScenario> CoastScenarios { get; set; } = Array.Empty<CoastFireScenario>();
         public RetirementRunway Runway { get; set; } = new RetirementRunway();
         public IReadOnlyList<RetirementProjectionPoint> Points { get; set; } = Array.Empty<RetirementProjectionPoint>();
+    }
+
+    public sealed class CoastFireScenario
+    {
+        public int RetirementAge { get; set; }
+        public int MonthsUntilRetirement { get; set; }
+        public RetirementProjectionPoint? ReachedPoint { get; set; }
     }
 
     public sealed class RetirementProjectionPoint

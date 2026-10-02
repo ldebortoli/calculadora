@@ -667,6 +667,7 @@ namespace Cashflow.Windows.Tests
                     True(window.FindName("StatusText") is TextBlock);
                     VerifyRetirementReserveToggleInUi();
                     RetirementCardActionsTests.Run();
+                    CoastFireTests.Run();
                     VerifyMainWindowFlowInUi();
                     VerifyGraphGeometryAndStylesInUi();
                     VerifyRetirementInflationRefreshInUi();

@@ -36,6 +36,8 @@ namespace Cashflow.Windows.Data
         public decimal BondAnnualReturnPercentage { get; set; } = 4m;
         public decimal WithdrawalRatePercentage { get; set; } = 3m;
         public int EmergencyRunwayTargetYears { get; set; } = 60;
+        public int CoastCurrentAge { get; set; } = 29;
+        public List<int> CoastTargetAges { get; set; } = new List<int> { 40, 50, 60, 65 };
 
         public decimal UsInflationPercentage { get; set; } = 3.36m;
         public bool UseInflationAdjustment { get; set; } = true;
@@ -99,6 +101,11 @@ namespace Cashflow.Windows.Data
         public bool EnsurePlanningCollections()
         {
             var changed = false;
+            if (CoastTargetAges == null)
+            {
+                CoastTargetAges = new List<int>();
+                changed = true;
+            }
             if (MonthlyIncomes == null)
             {
                 MonthlyIncomes = new List<RetirementIncomeSettings>();

@@ -146,7 +146,7 @@ namespace Cashflow.Windows.Controls
         {
             base.OnRender(context);
             context.DrawRectangle(new SolidColorBrush(Color.FromRgb(15, 23, 38)), null, new Rect(RenderSize));
-            if (_projection == null || _projection.Points.Count < 2 || ActualWidth < 300 || ActualHeight < 180)
+            if (_projection == null || _projection.Points.Count == 0 || ActualWidth < 300 || ActualHeight < 180)
             {
                 DrawCenteredText(context, "Completá tus datos para proyectar el crecimiento", 13, Color.FromRgb(148, 163, 184));
                 return;
@@ -164,10 +164,37 @@ namespace Cashflow.Windows.Controls
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.BondsRealUsd, Color.FromRgb(241, 185, 85), 1.7);
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.StocksRealUsd, Color.FromRgb(91, 141, 239), 1.9);
             DrawSeries(context, plot, maximumYear, maximumValue, point => point.TotalRealUsd, Color.FromRgb(24, 191, 162), 3.1);
+            DrawCoastMarkers(context, plot, maximumYear, maximumValue);
             DrawSelection(context, plot, maximumYear, maximumValue);
             DrawLegend(context, plot);
             context.Pop();
             DrawSelectionCard(context);
+        }
+
+        private void DrawCoastMarkers(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
+        {
+            var groups = _projection!.CoastScenarios.Where(scenario => scenario.ReachedPoint != null)
+                .GroupBy(scenario => scenario.ReachedPoint!.Month).OrderBy(group => group.Key);
+            var color = Color.FromRgb(182, 166, 210);
+            var brush = new SolidColorBrush(color);
+            var index = 0;
+            foreach (var group in groups)
+            {
+                var point = Map(group.First().ReachedPoint!, item => item.TotalRealUsd, plot, maximumYear, maximumValue);
+                var label = "COAST · " + string.Join(" / ", group.Select(scenario => scenario.RetirementAge)) + " años";
+                var measured = MeasureText(label, 9, FontWeights.SemiBold);
+                var width = measured.Width + 16d;
+                var x = Math.Max(plot.Left, Math.Min(plot.Right - width, point.X - width / 2d));
+                var y = plot.Top + 31d + index % 4 * 24d;
+                context.DrawLine(new Pen(brush, 1d) { DashStyle = DashStyles.Dash },
+                    new Point(point.X, plot.Top + 31d), new Point(point.X, plot.Bottom));
+                context.DrawEllipse(new SolidColorBrush(Color.FromRgb(15, 23, 38)), new Pen(brush, 2d), point, 6d, 6d);
+                context.DrawEllipse(brush, null, point, 2.5d, 2.5d);
+                context.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(39, 34, 54)), new Pen(brush, 0.7d),
+                    new Rect(x, y, width, 20d), 5d, 5d);
+                DrawText(context, label, 9, FontWeights.SemiBold, color, new Point(x + 8d, y + 3d));
+                index++;
+            }
         }
 
         private void DrawSelection(DrawingContext context, Rect plot, double maximumYear, double maximumValue)
@@ -197,10 +224,13 @@ namespace Cashflow.Windows.Controls
             }
             var width = Math.Min(286d, Math.Max(220d, ActualWidth - 24d));
             var origin = new Point(Math.Max(12d, ActualWidth - width - 12d), 12d);
+            var coastAges = _projection!.CoastScenarios
+                .Where(scenario => scenario.ReachedPoint?.Month == _selectedPoint.Month)
+                .Select(scenario => scenario.RetirementAge).ToList();
             context.DrawRoundedRectangle(
                 new SolidColorBrush(Color.FromArgb(244, 19, 31, 49)),
                 new Pen(new SolidColorBrush(Color.FromRgb(54, 73, 102)), 1d),
-                new Rect(origin.X, origin.Y, width, 67d),
+                new Rect(origin.X, origin.Y, width, coastAges.Count == 0 ? 67d : 87d),
                 9d,
                 9d);
             var period = _selectedPoint.Month == 0
@@ -209,6 +239,11 @@ namespace Cashflow.Windows.Controls
             DrawText(context, period, 9, FontWeights.Bold, Color.FromRgb(100, 228, 200), new Point(origin.X + 11d, origin.Y + 8d));
             DrawText(context, $"Total  {ExactMoney(_selectedPoint.TotalRealUsd)}", 11, FontWeights.SemiBold, Color.FromRgb(231, 237, 247), new Point(origin.X + 11d, origin.Y + 25d));
             DrawText(context, $"Acciones {ExactMoney(_selectedPoint.StocksRealUsd)}   ·   Bonos {ExactMoney(_selectedPoint.BondsRealUsd)}", 9, FontWeights.Normal, Color.FromRgb(174, 188, 209), new Point(origin.X + 11d, origin.Y + 45d));
+            if (coastAges.Count > 0)
+            {
+                DrawText(context, "COAST · jubilación a " + string.Join(" / ", coastAges) + " años", 9,
+                    FontWeights.SemiBold, Color.FromRgb(182, 166, 210), new Point(origin.X + 11d, origin.Y + 65d));
+            }
         }
 
         private void DrawGrid(DrawingContext context, Rect plot, double maximumYear, double maximumValue)

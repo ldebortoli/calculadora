@@ -7,6 +7,8 @@ Calculadora local de rutas de transferencia. Representa plataformas y cuentas co
 ## Que incluye este MVP
 
 - Aplicacion nativa para Windows, con icono y AppUserModelID propios.
+- Maximización nativa al área útil completa del monitor, respetando la barra de tareas; restauración al tamaño normal sin topes máximos fijados al arrancar.
+- Selector de español, inglés, portugués, francés, italiano, alemán, ruso, japonés y chino simplificado. El catálogo está incrustado y funciona sin conexión, incluidos diálogos, textos dinámicos, gráficos y etiquetas accesibles; la preferencia se conserva en `%LOCALAPPDATA%/RutaCashflow/language.json`. Los datos y nombres editables del usuario y el formato monetario `es-AR` se conservan.
 - Pantalla de carga grafica de marca y arranque `WinExe` sin consola visible.
 - Escenarios completos con origen GrabrFi y origen Wallbit Pro.
 - Comparador Global 2026 con ambos orígenes y destinos ARS, Interactive Brokers por ACH y wallet externa en USDT.
@@ -179,6 +181,14 @@ dotnet run --project tests/Cashflow.Core.Tests/Cashflow.Core.Tests.csproj
 dotnet run --project tests/Cashflow.Windows.Tests/Cashflow.Windows.Tests.csproj
 dotnet build CashflowCalculator.sln -c Release
 ```
+
+La prueba específica de presentación comprueba maximización/restauración contra el área útil física del monitor, los nueve idiomas, bindings, accesibilidad y preferencia persistente:
+
+```powershell
+dotnet run --project tests/Cashflow.Windows.Tests/Cashflow.Windows.Tests.csproj -c Release -- --presentation
+```
+
+Esta suite también se ejecuta dentro del gate completo. El catálogo `src/Cashflow.Windows/Localization/catalog.json` contiene las ocho traducciones de cada clave española; las pruebas verifican textos XAML, valores no vacíos y conservación de argumentos. Para añadir texto visible, incorporá todas sus traducciones y mantené los marcadores `{0}`, `{1}`, etc. Los textos de controles se localizan al cargarse y al cambiar; los gráficos usan el mismo servicio al dibujar.
 
 La validación completa restaura la herramienta local, compila en Release, ejecuta ambas suites y genera un informe Cobertura combinado para `Cashflow.Core` y `Cashflow.Windows`:
 

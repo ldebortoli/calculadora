@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using Cashflow.Windows.Localization;
 
 namespace Cashflow.Windows
 {
@@ -39,6 +40,7 @@ namespace Cashflow.Windows
             var culture = CultureInfo.GetCultureInfo("es-AR");
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
+            UiLanguage.Initialize();
 
             try
             {

@@ -32,6 +32,7 @@ namespace Cashflow.Windows
             _inflationService = inflationService ?? new UsInflationService();
             _document.Retirement.EnsurePlanningCollections();
             InitializeComponent();
+            Localization.UiLanguage.Track(this);
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)

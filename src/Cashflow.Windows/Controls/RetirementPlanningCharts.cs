@@ -109,7 +109,7 @@ namespace Cashflow.Windows.Controls
 
         protected FormattedText MeasureText(string text, double size, FontWeight weight) =>
             new FormattedText(
-                text,
+                Localization.UiLanguage.Translate(text),
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
                 new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, weight, FontStretches.Normal),

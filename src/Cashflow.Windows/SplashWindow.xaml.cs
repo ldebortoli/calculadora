@@ -8,6 +8,7 @@ namespace Cashflow.Windows
         public SplashWindow()
         {
             InitializeComponent();
+            Localization.UiLanguage.Track(this);
         }
 
         private void CloseSplash_Click(object sender, RoutedEventArgs e) => Close();

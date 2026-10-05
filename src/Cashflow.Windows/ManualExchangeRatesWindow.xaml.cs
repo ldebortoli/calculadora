@@ -21,6 +21,7 @@ namespace Cashflow.Windows
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             InitializeComponent();
+            Localization.UiLanguage.Track(this);
             WindowTheme.ApplyDarkTitleBar(this);
             ManualExchangeRateSynchronizer.EnsureSynchronized(_document);
             BuildEditors();

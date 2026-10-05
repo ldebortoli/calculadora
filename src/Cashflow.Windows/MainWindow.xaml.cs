@@ -17,6 +17,7 @@ using Cashflow.Core.Calculation;
 using Cashflow.Core.Input;
 using Cashflow.Core.Models;
 using Cashflow.Windows.Data;
+using Cashflow.Windows.Localization;
 
 namespace Cashflow.Windows
 {
@@ -38,22 +39,42 @@ namespace Cashflow.Windows
         private TransferRoute? _selectedRoute;
         private bool _loading;
         private bool _marketRefreshInProgress;
+        private readonly LanguagePreferenceStore _languageStore;
 
         public MainWindow(
             ScenarioStore? store = null,
             ScenarioMarketUpdater? marketUpdater = null,
-            ArgentinaExchangeRateService? argentinaRates = null)
+            ArgentinaExchangeRateService? argentinaRates = null,
+            LanguagePreferenceStore? languageStore = null)
         {
             _store = store ?? new ScenarioStore();
             _marketUpdater = marketUpdater ?? new ScenarioMarketUpdater();
             _argentinaRates = argentinaRates ?? new ArgentinaExchangeRateService();
+            _languageStore = languageStore ?? new LanguagePreferenceStore();
             InitializeComponent();
+            UiLanguage.Track(this);
+            LanguageCombo.ItemsSource = UiLanguage.Languages;
+            LanguageCombo.SelectedItem = UiLanguage.Languages.Single(language => language.Id == UiLanguage.CurrentId);
             NodeKindCombo.ItemsSource = Enum.GetValues(typeof(NodeKind));
             RouteFeeApplicationCombo.ItemsSource = _feeApplicationChoices;
             Graph.NodeSelected += SelectNode;
             Graph.RouteSelected += SelectRoute;
             Graph.GraphChanged += SaveSilently;
             _marketTimer.Tick += async (_, __) => await RefreshInternetMarketsAsync(GetMarketSampleAmount(), false);
+        }
+
+        private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LanguageCombo.SelectedItem is not LanguageChoice choice || choice.Id == UiLanguage.CurrentId) return;
+            UiLanguage.SetLanguage(choice.Id);
+            try
+            {
+                _languageStore.Save(choice.Id);
+            }
+            catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
+            {
+                AppDialogWindow.ShowInfo(this, exception.Message, "No se pudo guardar el idioma");
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -109,8 +130,6 @@ namespace Cashflow.Windows
             var availableHeight = Math.Max(560d, bottomRight.Y - topLeft.Y - margin * 2d);
             MinWidth = Math.Min(MinWidth, availableWidth);
             MinHeight = Math.Min(MinHeight, availableHeight);
-            MaxWidth = availableWidth;
-            MaxHeight = availableHeight;
             Width = Math.Min(Width, availableWidth);
             Height = Math.Min(Height, availableHeight);
             Left = topLeft.X + (bottomRight.X - topLeft.X - Width) / 2d;

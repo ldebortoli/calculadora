@@ -9,6 +9,7 @@ public partial class AppDialogWindow : Window
     private AppDialogWindow(string message, string title, string acceptLabel, string? cancelLabel)
     {
         InitializeComponent();
+        Localization.UiLanguage.Track(this);
         WindowTheme.ApplyDarkTitleBar(this);
         Title = $"{title} · Calculadora";
         HeaderText.Text = title;

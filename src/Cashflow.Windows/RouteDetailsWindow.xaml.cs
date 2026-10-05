@@ -14,6 +14,7 @@ namespace Cashflow.Windows
         {
             if (result == null) throw new ArgumentNullException(nameof(result));
             InitializeComponent();
+        Localization.UiLanguage.Track(this);
             WindowTheme.ApplyDarkTitleBar(this);
 
             PathText.Text = result.PathLabel;

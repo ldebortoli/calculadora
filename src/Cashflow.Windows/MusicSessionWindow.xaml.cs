@@ -35,6 +35,7 @@ namespace Cashflow.Windows
             _marketUpdater = marketUpdater ?? new ScenarioMarketUpdater();
             _argentinaRates = argentinaRates ?? new ArgentinaExchangeRateService();
             InitializeComponent();
+            Localization.UiLanguage.Track(this);
             _timer.Tick += async (_, __) => await RefreshMarketsAsync(false);
         }
 

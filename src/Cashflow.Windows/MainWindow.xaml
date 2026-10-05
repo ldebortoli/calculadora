@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:Cashflow.Windows.Controls"
         Title="Calculadora"
+        AutomationProperties.HelpText="Calculadora local de rutas de transferencia, comisiones y conversiones."
         Icon="Assets/AppIcon.ico"
         Width="1380"
         Height="820"
@@ -15,6 +16,10 @@
         SourceInitialized="Window_SourceInitialized"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
+    <Grid>
+    <ComboBox x:Name="LanguageCombo" Width="154" Margin="0,4,12,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+              Panel.ZIndex="10" DisplayMemberPath="Name" SelectionChanged="LanguageCombo_SelectionChanged"
+              AutomationProperties.Name="Idioma" ToolTip="Idioma de la aplicación" />
     <TabControl>
         <TabItem Header="Cash Flow">
             <Grid>
@@ -311,4 +316,5 @@
             </Grid>
         </TabItem>
     </TabControl>
+    </Grid>
 </Window>

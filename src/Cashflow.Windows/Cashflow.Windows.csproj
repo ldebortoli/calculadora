@@ -11,12 +11,13 @@
     <AssemblyTitle>Calculadora</AssemblyTitle>
     <Product>Calculadora</Product>
     <Description>Calculadora local de rutas de transferencia, comisiones y conversiones.</Description>
-    <Version>0.9.14</Version>
-    <FileVersion>0.9.14.0</FileVersion>
+    <Version>0.9.15</Version>
+    <FileVersion>0.9.15.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cashflow.Core\Cashflow.Core.csproj" />
     <Resource Include="Assets\AppIcon.ico" />
     <Resource Include="Assets\AppIcon.png" />
+    <EmbeddedResource Include="Localization\catalog.json" LogicalName="Cashflow.Windows.Localization.catalog.json" />
   </ItemGroup>
 </Project>

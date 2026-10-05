@@ -21,6 +21,10 @@
             <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         </Style>
 
+        <Style TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="{StaticResource AppBackgroundBrush}" />
             <Setter Property="BorderThickness" Value="0" />

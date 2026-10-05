@@ -354,7 +354,7 @@ namespace Cashflow.Windows.Controls
 
         private FormattedText MeasureText(string text, double size, FontWeight weight) =>
             new FormattedText(
-                text,
+                Localization.UiLanguage.Translate(text),
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
                 new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, weight, FontStretches.Normal),
@@ -369,8 +369,11 @@ namespace Cashflow.Windows.Controls
             context.DrawText(formatted, origin);
         }
 
-        private static string Truncate(string value, int maximum) =>
-            value.Length <= maximum ? value : value.Substring(0, maximum - 1) + "…";
+        private static string Truncate(string value, int maximum)
+        {
+            value = Localization.UiLanguage.Translate(value);
+            return value.Length <= maximum ? value : value.Substring(0, maximum - 1) + "…";
+        }
 
         private sealed class MethodNode
         {

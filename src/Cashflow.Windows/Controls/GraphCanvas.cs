@@ -462,7 +462,7 @@ namespace Cashflow.Windows.Controls
             new Point((point.X - _panOffset.X) / _zoom, (point.Y - _panOffset.Y) / _zoom);
 
         private FormattedText MeasureText(string text, double size, FontWeight weight) =>
-            new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, weight, FontStretches.Normal), size, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            new FormattedText(Localization.UiLanguage.Translate(text), CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, weight, FontStretches.Normal), size, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
         private void DrawText(DrawingContext context, string text, double size, FontWeight weight, Color color, Point origin)
         {
@@ -471,7 +471,10 @@ namespace Cashflow.Windows.Controls
             context.DrawText(formatted, origin);
         }
 
-        private static string Truncate(string value, int maximum) =>
-            value.Length <= maximum ? value : value.Substring(0, maximum - 1) + "…";
+        private static string Truncate(string value, int maximum)
+        {
+            value = Localization.UiLanguage.Translate(value);
+            return value.Length <= maximum ? value : value.Substring(0, maximum - 1) + "…";
+        }
     }
 }

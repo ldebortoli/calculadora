@@ -19,8 +19,9 @@ namespace Cashflow.Windows.Tests
 {
     internal static class Program
     {
-        private static int Main()
+        private static int Main(string[] args)
         {
+            if (args.Contains("--presentation")) return RunPresentationOnly();
             try
             {
                 CalculatesAllThreeMethodsFromGrabrFiOnly();
@@ -66,6 +67,27 @@ namespace Cashflow.Windows.Tests
                 Console.WriteLine("[ERROR] " + exception);
                 return 1;
             }
+        }
+
+        private static int RunPresentationOnly()
+        {
+            Exception? error = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                    app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                    WindowPresentationTests.Run();
+                }
+                catch (Exception exception) { error = exception; }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            Console.WriteLine(error == null ? "Presentación: correcta." : "[ERROR] " + error);
+            return error == null ? 0 : 1;
         }
 
         private static void CalculatesAllThreeMethodsFromGrabrFiOnly()
@@ -681,6 +703,7 @@ namespace Cashflow.Windows.Tests
                     VerifyDialogsInUi();
                     VerifyManualRatesSaveInUi();
                     VerifyManualRatesInvalidAndEmptyStatesInUi();
+                    WindowPresentationTests.Run();
                     var splash = new SplashWindow();
                     splash.Show();
                     var closeButton = splash.FindName("CloseSplashButton") as Button;

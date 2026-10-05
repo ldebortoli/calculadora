@@ -197,7 +197,7 @@ internal static class WindowPresentationTests
                 var tab = ((TabControl)((Grid)window.Content).Children[1]).Items.Cast<TabItem>().Last();
                 tab.IsSelected = true;
                 Pump();
-                Check(((TextBox)retirement.FindName("CoastCurrentAgeBox")).Text == "29", "Edad no modificada por traducción.");
+                Check(((TextBox)retirement.FindName("BirthDateBox")).Text == "", "Nacimiento opcional no modificado por traducción.");
                 var title = ((TextBlock)((StackPanel)retirement.FindName("CoastResultsPanel")).Children[0]).Text;
                 Render(window, "presentation-" + language.Id + ".png");
                 Check(title == UiLanguage.Translate("COAST FIRE · cuándo podrías dejar de aportar"), "Jubilación usa el idioma activo: " + language.Id + ": " + title);

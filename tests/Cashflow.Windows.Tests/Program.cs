@@ -690,6 +690,7 @@ namespace Cashflow.Windows.Tests
                     VerifyRetirementReserveToggleInUi();
                     RetirementCardActionsTests.Run();
                     CoastFireTests.Run();
+                    BirthDateTests.Run();
                     VerifyMainWindowFlowInUi();
                     VerifyGraphGeometryAndStylesInUi();
                     VerifyRetirementInflationRefreshInUi();

@@ -29,6 +29,7 @@ internal static class CoastFireTests
     private static RetirementSettings Settings() => new RetirementSettings
     {
         PlanningCollectionsInitialized = true,
+        BirthDate = DateTime.Today.AddYears(-29),
         InitialStocksCents = 10000,
         TargetInvestedCents = 100000,
         TargetStocksCents = 100000,
@@ -45,13 +46,13 @@ internal static class CoastFireTests
     private static void DefaultsAndPersistence()
     {
         var legacy = JsonSerializer.Deserialize<RetirementSettings>("{}")!;
-        Check(legacy.CoastCurrentAge == 29 && legacy.CoastTargetAges.SequenceEqual(new[] { 40, 50, 60, 65 }),
-            "Documentos anteriores reciben las edades iniciales acordadas.");
-        legacy.CoastCurrentAge = 31;
+        Check(legacy.BirthDate == null && legacy.CoastTargetAges.SequenceEqual(new[] { 40, 50, 60, 65 }),
+            "Documentos anteriores conservan edades objetivo sin inventar un nacimiento.");
+        legacy.BirthDate = new DateTime(1995, 6, 15);
         legacy.CoastTargetAges = new List<int> { 45, 55, 70 };
         var saved = JsonSerializer.Deserialize<RetirementSettings>(JsonSerializer.Serialize(legacy))!;
-        Check(saved.CoastCurrentAge == 31 && saved.CoastTargetAges.SequenceEqual(legacy.CoastTargetAges),
-            "Las edades editadas persisten.");
+        Check(saved.BirthDate == legacy.BirthDate && saved.CoastTargetAges.SequenceEqual(legacy.CoastTargetAges),
+            "El nacimiento y las edades editadas persisten.");
         saved.CoastTargetAges.Clear();
         saved.EnsurePlanningCollections();
         Check(saved.CoastTargetAges.Count == 0, "Una comparación vacía no se repuebla.");
@@ -153,13 +154,13 @@ internal static class CoastFireTests
 
     private static void Validation()
     {
-        foreach (var age in new[] { -1, 121 })
+        foreach (var date in new[] { DateTime.Today.AddDays(1), DateTime.Today.AddYears(-121) })
         {
             var settings = Settings();
-            settings.CoastCurrentAge = age;
+            settings.BirthDate = date;
             ExpectArgument(() => new RetirementCalculator().Calculate(settings));
         }
-        foreach (var age in new[] { 28, 130 })
+        foreach (var age in new[] { -1, 130 })
         {
             var settings = Settings();
             settings.CoastTargetAges = new List<int> { age };
@@ -168,7 +169,7 @@ internal static class CoastFireTests
         foreach (var age in new[] { 0, 120 })
         {
             var settings = Settings();
-            settings.CoastCurrentAge = age;
+            settings.BirthDate = DateTime.Today.AddYears(-age);
             settings.CoastTargetAges = new List<int> { age, age + 100 };
             Check(new RetirementCalculator().Calculate(settings).CoastScenarios.Count == 2, "Límites de edad admitidos.");
         }
@@ -184,17 +185,17 @@ internal static class CoastFireTests
             var store = new ScenarioStore(path);
             var view = new RetirementView(document, store);
             view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
-            var current = (TextBox)view.FindName("CoastCurrentAgeBox");
+            var current = (TextBox)view.FindName("BirthDateBox");
             var targets = (TextBox)view.FindName("CoastTargetAgesBox");
-            Check(current.Text == "29" && targets.Text == "40, 50, 60, 65", "Campos iniciales claros.");
+            Check(current.Text == DateTime.Today.AddYears(-29).ToString("dd/MM/yyyy") && targets.Text == "40, 50, 60, 65", "Campos iniciales claros.");
             var save = typeof(RetirementView).GetMethod("TrySaveInputs", PrivateInstance)!;
-            foreach (var invalid in new[] { "abc", "-1", "121" })
+            foreach (var invalid in new[] { "abc", "31/02/1997", DateTime.Today.AddDays(1).ToString("dd/MM/yyyy"), DateTime.Today.AddYears(-121).ToString("dd/MM/yyyy") })
             {
                 current.Text = invalid;
-                Check(Equals(save.Invoke(view, new object[] { false }), false), "Edad actual inválida rechazada.");
+                Check(Equals(save.Invoke(view, new object[] { false }), false), "Nacimiento inválido rechazado.");
             }
-            current.Text = "29";
-            foreach (var invalid in new[] { "abc", "28", "130", "40, 50.5" })
+            current.Text = DateTime.Today.AddYears(-29).ToString("dd/MM/yyyy");
+            foreach (var invalid in new[] { "abc", "-1", "130", "40, 50.5" })
             {
                 targets.Text = invalid;
                 Check(Equals(save.Invoke(view, new object[] { false }), false), "Edad objetivo inválida rechazada.");
@@ -203,9 +204,9 @@ internal static class CoastFireTests
             Check(Equals(save.Invoke(view, new object[] { false }), true), "Múltiples edades editables.");
             store.Save(document);
             Check(store.Load().Retirement.CoastTargetAges.SequenceEqual(new[] { 40, 50, 60, 65 }), "Edades guardadas por el formulario.");
-            current.Text = "30";
+            current.Text = DateTime.Today.AddYears(-30).ToString("dd/MM/yyyy");
             targets.Text = "30, 31, 40, 70";
-            Check(Equals(save.Invoke(view, new object[] { false }), true), "Edad actual modificable.");
+            Check(Equals(save.Invoke(view, new object[] { false }), true), "Nacimiento modificable.");
             var render = typeof(RetirementView).GetMethod("RenderProjection", PrivateInstance)!;
             render.Invoke(view, null);
             var cards = (WrapPanel)view.FindName("CoastScenarioRowsPanel");

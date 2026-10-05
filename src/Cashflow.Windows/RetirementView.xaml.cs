@@ -252,7 +252,7 @@ namespace Cashflow.Windows
             WithdrawalRateBox.Text = FormatInput(settings.WithdrawalRatePercentage);
             InflationBox.Text = FormatInput(settings.UsInflationPercentage);
             RunwayTargetYearsBox.Text = settings.EmergencyRunwayTargetYears.ToString(CultureInfo.CurrentCulture);
-            CoastCurrentAgeBox.Text = settings.CoastCurrentAge.ToString(CultureInfo.CurrentCulture);
+            BirthDateBox.Text = settings.BirthDate?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
             CoastTargetAgesBox.Text = string.Join(", ", settings.CoastTargetAges);
             BuildIncomeEditors();
             BuildReserveEditors();
@@ -502,7 +502,7 @@ namespace Cashflow.Windows
             {
                 return ValidationError("El horizonte de autonomía debe ser un entero entre 1 y 100 años.", showErrors);
             }
-            if (!TryReadCoastInputs(showErrors, out var coastCurrentAge, out var coastTargetAges))
+            if (!TryReadBirthDate(showErrors, out var birthDate) || !TryReadCoastInputs(showErrors, birthDate, out var coastTargetAges))
             {
                 return false;
             }
@@ -560,25 +560,39 @@ namespace Cashflow.Windows
             settings.UsInflationPercentage = inflation;
             settings.WithdrawalRatePercentage = withdrawal;
             settings.EmergencyRunwayTargetYears = runwayTargetYears;
-            settings.CoastCurrentAge = coastCurrentAge;
+            settings.BirthDate = birthDate;
             settings.CoastTargetAges = coastTargetAges;
             UpdateVacationProration(annualVacation);
             return true;
         }
 
-        private bool TryReadCoastInputs(bool showErrors, out int currentAge, out List<int> targetAges)
+        private bool TryReadBirthDate(bool showErrors, out DateTime? birthDate)
+        {
+            birthDate = null;
+            var text = BirthDateBox.Text.Trim();
+            if (text.Length == 0)
+            {
+                return true;
+            }
+            if (!DateTime.TryParseExact(text, "d/M/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ||
+                date > DateTime.Today || RetirementAge.YearsOn(date, DateTime.Today) > 120)
+            {
+                return ValidationError("Ingresá una fecha de nacimiento válida en formato día/mes/año, no futura y de hasta 120 años.", showErrors);
+            }
+            birthDate = date;
+            return true;
+        }
+
+        private bool TryReadCoastInputs(bool showErrors, DateTime? birthDate, out List<int> targetAges)
         {
             targetAges = new List<int>();
-            if (!int.TryParse(CoastCurrentAgeBox.Text.Trim(), out currentAge) || currentAge < 0 || currentAge > 120)
-            {
-                return ValidationError("Tu edad actual debe ser un entero entre 0 y 120 años.", showErrors);
-            }
+            var maximumAge = birthDate.HasValue ? RetirementAge.YearsOn(birthDate.Value, DateTime.Today) + RetirementCalculator.MaximumProjectionYears : 220;
             var entries = CoastTargetAgesBox.Text.Split(new[] { ',', ';', ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var entry in entries)
             {
-                if (!int.TryParse(entry, out var age) || age < currentAge || age > currentAge + RetirementCalculator.MaximumProjectionYears)
+                if (!int.TryParse(entry, out var age) || age < 0 || age > maximumAge)
                 {
-                    return ValidationError($"Las edades de jubilación deben ser enteros entre {currentAge} y {currentAge + RetirementCalculator.MaximumProjectionYears}, separados por comas.", showErrors);
+                    return ValidationError($"Las edades de jubilación deben ser enteros entre 0 y {maximumAge}, separados por comas.", showErrors);
                 }
                 targetAges.Add(age);
             }
@@ -650,6 +664,9 @@ namespace Cashflow.Windows
             }
 
             SurplusNormalText.Text = FormatMoney(projection.MonthlySurplusAfterExtraExpenses);
+            TargetAgeText.Visibility = projection.AgeAtTargetYears.HasValue ? Visibility.Visible : Visibility.Collapsed;
+            TargetAgeText.Text = projection.AgeAtTargetYears.HasValue ? $"Vas a tener {projection.AgeAtTargetYears.Value} años" : string.Empty;
+            CoastBirthDateHint.Visibility = _document.Retirement.BirthDate.HasValue ? Visibility.Collapsed : Visibility.Visible;
             SurplusExtraText.Text = "Durante gastos extra: " + FormatMoney(projection.MonthlySurplusDuringExtraExpenses);
             SetSurplusColor(SurplusNormalText, projection.MonthlySurplusAfterExtraExpenses);
             MonthlyWithdrawalText.Text = FormatMoney(projection.MonthlyWithdrawalRealUsd) + " / mes";
@@ -717,7 +734,7 @@ namespace Cashflow.Windows
                 });
                 content.Children.Add(new TextBlock
                 {
-                    Text = BuildCoastStatus(scenario, _document.Retirement.CoastCurrentAge),
+                    Text = BuildCoastStatus(scenario, _document.Retirement.BirthDate!.Value),
                     Foreground = (Brush)FindResource("InkBrush"),
                     FontSize = 10,
                     TextWrapping = TextWrapping.Wrap,
@@ -737,7 +754,7 @@ namespace Cashflow.Windows
             }
         }
 
-        private static string BuildCoastStatus(CoastFireScenario scenario, int currentAge)
+        private static string BuildCoastStatus(CoastFireScenario scenario, DateTime birthDate)
         {
             var point = scenario.ReachedPoint;
             if (point == null)
@@ -745,7 +762,8 @@ namespace Cashflow.Windows
                 return "No se alcanza COAST con estos supuestos antes de esa edad.";
             }
             var timing = point.Month == 0 ? "COAST hoy" : $"COAST en {FormatTargetDuration(point.Month)}";
-            return $"{timing}\nEdad: {FormatDuration(currentAge * 12 + point.Month)} · {DateTime.Today.AddMonths(point.Month).ToString("MMM yyyy", MoneyCulture)}\nCartera: {FormatMoney(point.TotalRealUsd)}";
+            var date = DateTime.Today.AddMonths(point.Month);
+            return $"{timing}\nEdad: {RetirementAge.YearsOn(birthDate, date)} años · {date.ToString("MMM yyyy", MoneyCulture)}\nCartera: {FormatMoney(point.TotalRealUsd)}";
         }
 
         private void RenderRunway(RetirementRunway runway)

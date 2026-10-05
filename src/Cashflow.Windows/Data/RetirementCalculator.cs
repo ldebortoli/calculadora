@@ -8,10 +8,11 @@ namespace Cashflow.Windows.Data
     {
         public const int MaximumProjectionYears = 100;
 
-        public RetirementProjection Calculate(RetirementSettings settings)
+        public RetirementProjection Calculate(RetirementSettings settings, DateTime? startDate = null)
         {
+            var today = (startDate ?? DateTime.Today).Date;
             settings.EnsurePlanningCollections();
-            Validate(settings);
+            Validate(settings, today);
 
             var monthlyIncome = settings.MonthlyIncomes.Where(income => income.IsIncluded)
                 .Sum(income => ToDollars(income.MonthlyAmountCents));
@@ -40,11 +41,11 @@ namespace Cashflow.Windows.Data
                 }
             }
             var points = new List<RetirementProjectionPoint>();
-            var coastScenarios = settings.CoastTargetAges.Distinct().OrderBy(age => age)
+            var coastScenarios = (settings.BirthDate.HasValue ? settings.CoastTargetAges : Enumerable.Empty<int>()).Distinct().OrderBy(age => age)
                 .Select(age => new CoastFireScenario
                 {
                     RetirementAge = age,
-                    MonthsUntilRetirement = (age - settings.CoastCurrentAge) * 12
+                    MonthsUntilRetirement = RetirementAge.MonthsUntilBirthday(settings.BirthDate!.Value, age, today)
                 }).ToList();
             var stockRealMonthlyFactor = (1d + stockMonthlyRate) / (1d + inflationMonthlyRate);
             var bondRealMonthlyFactor = (1d + bondMonthlyRate) / (1d + inflationMonthlyRate);
@@ -117,7 +118,7 @@ namespace Cashflow.Windows.Data
                 }
             }
 
-            var reserveGoals = BuildReserveGoals(reserves, inflationFactor);
+            var reserveGoals = BuildReserveGoals(reserves, inflationFactor, today);
             var finalPoint = points[points.Count - 1];
             var reached = reachedMonth.HasValue;
             var monthlyWithdrawalReal = target * (double)settings.WithdrawalRatePercentage / 100d / 12d;
@@ -127,7 +128,9 @@ namespace Cashflow.Windows.Data
                 UsesInflationAdjustment = settings.UseInflationAdjustment,
                 ReachedTarget = reached,
                 MonthsToTarget = reachedMonth,
-                EstimatedTargetDate = reachedMonth.HasValue ? DateTime.Today.AddMonths(reachedMonth.Value) : (DateTime?)null,
+                EstimatedTargetDate = reachedMonth.HasValue ? today.AddMonths(reachedMonth.Value) : (DateTime?)null,
+                AgeAtTargetYears = reachedMonth.HasValue && settings.BirthDate.HasValue
+                    ? RetirementAge.YearsOn(settings.BirthDate.Value, today.AddMonths(reachedMonth.Value)) : (int?)null,
                 TotalMonthlyIncomeUsd = monthlyIncome,
                 MonthlyVacationProrationUsd = vacationExpenses,
                 MonthlySurplusDuringExtraExpenses = monthlyIncome - ordinaryExpenses - vacationExpenses - musicExpense - extraExpense,
@@ -144,7 +147,7 @@ namespace Cashflow.Windows.Data
                 TotalReservedUsd = reserveGoals.Sum(goal => Math.Max(0d, goal.FinalUsd - goal.InitialCurrentUsd)),
                 ReserveGoals = reserveGoals,
                 CoastScenarios = coastScenarios,
-                Runway = CalculateRunway(settings),
+                Runway = CalculateRunway(settings, today),
                 Points = points
             };
         }
@@ -177,7 +180,8 @@ namespace Cashflow.Windows.Data
 
         private static IReadOnlyList<RetirementReserveGoal> BuildReserveGoals(
             IReadOnlyList<ReserveState> states,
-            double finalInflationFactor)
+            double finalInflationFactor,
+            DateTime today)
         {
             return states.Select(state => new RetirementReserveGoal
             {
@@ -192,12 +196,12 @@ namespace Cashflow.Windows.Data
                 MonthlyCapUsd = state.MonthlyCap,
                 ReachedMonth = state.ReachedMonth,
                 EstimatedCompletionDate = state.ReachedMonth.HasValue
-                    ? DateTime.Today.AddMonths(state.ReachedMonth.Value)
+                    ? today.AddMonths(state.ReachedMonth.Value)
                     : (DateTime?)null
             }).ToList();
         }
 
-        private static RetirementRunway CalculateRunway(RetirementSettings settings)
+        private static RetirementRunway CalculateRunway(RetirementSettings settings, DateTime today)
         {
             var stocks = ToDollars(settings.InitialStocksCents);
             var bonds = ToDollars(settings.InitialBondsCents);
@@ -262,7 +266,7 @@ namespace Cashflow.Windows.Data
                 UsesInflationAdjustment = settings.UseInflationAdjustment,
                 MonthsCovered = failureMonth.HasValue ? failureMonth.Value - 1 : maximumMonths,
                 FailureMonth = failureMonth,
-                EstimatedFailureDate = failureMonth.HasValue ? DateTime.Today.AddMonths(failureMonth.Value) : (DateTime?)null,
+                EstimatedFailureDate = failureMonth.HasValue ? today.AddMonths(failureMonth.Value) : (DateTime?)null,
                 ReachesProjectionHorizon = !failureMonth.HasValue,
                 InitialLiquidReservesUsd = initialLiquidReserves,
                 InitialInvestedUsd = ToDollars(settings.InitialStocksCents + settings.InitialBondsCents),
@@ -341,7 +345,7 @@ namespace Cashflow.Windows.Data
             return true;
         }
 
-        private static void Validate(RetirementSettings settings)
+        private static void Validate(RetirementSettings settings, DateTime today)
         {
             if (settings.InitialStocksCents < 0 || settings.InitialBondsCents < 0 ||
                 settings.OrdinaryMonthlyExpensesCents < 0 || settings.AnnualVacationExpensesCents < 0 ||
@@ -373,13 +377,14 @@ namespace Cashflow.Windows.Data
             {
                 throw new ArgumentException("El horizonte de autonomía debe estar entre 1 y 100 años.");
             }
-            if (settings.CoastCurrentAge < 0 || settings.CoastCurrentAge > 120)
+            if (settings.BirthDate.HasValue && (settings.BirthDate.Value.Date > today || RetirementAge.YearsOn(settings.BirthDate.Value, today) > 120))
             {
-                throw new ArgumentException("La edad actual debe estar entre 0 y 120 años.");
+                throw new ArgumentException("La fecha de nacimiento no puede ser futura ni corresponder a más de 120 años.");
             }
-            if (settings.CoastTargetAges.Any(age => age < settings.CoastCurrentAge || age > settings.CoastCurrentAge + MaximumProjectionYears))
+            var maximumAge = settings.BirthDate.HasValue ? RetirementAge.YearsOn(settings.BirthDate.Value, today) + MaximumProjectionYears : 220;
+            if (settings.CoastTargetAges.Any(age => age < 0 || age > maximumAge))
             {
-                throw new ArgumentException("Cada edad de jubilación COAST debe estar entre la edad actual y 100 años después.");
+                throw new ArgumentException($"Las edades de jubilación deben ser enteros entre 0 y {maximumAge}, separados por comas.");
             }
             ValidatePercentage(settings.StockAnnualReturnPercentage, -99.99m, 100m, "El retorno de acciones");
             ValidatePercentage(settings.BondAnnualReturnPercentage, -99.99m, 100m, "El retorno de bonos");
@@ -490,6 +495,7 @@ namespace Cashflow.Windows.Data
         public bool ReachedTarget { get; set; }
         public int? MonthsToTarget { get; set; }
         public DateTime? EstimatedTargetDate { get; set; }
+        public int? AgeAtTargetYears { get; set; }
         public double TotalMonthlyIncomeUsd { get; set; }
         public double MonthlyVacationProrationUsd { get; set; }
         public double MonthlySurplusDuringExtraExpenses { get; set; }

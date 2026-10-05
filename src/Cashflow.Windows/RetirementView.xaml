@@ -28,6 +28,11 @@
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,6,18">
+                        <TextBlock Text="Fecha de nacimiento (opcional)" Foreground="#D2DAE6" FontSize="10" Margin="0,0,0,4" />
+                        <TextBox x:Name="BirthDateBox" AutomationProperties.Name="Fecha de nacimiento (opcional)" AutomationProperties.HelpText="Formato: día/mes/año, por ejemplo 15/06/1997." />
+                        <TextBlock Text="Formato: día/mes/año, por ejemplo 15/06/1997. Se usa para calcular tu edad en la fecha estimada y en COAST FIRE."
+                                   Foreground="#8F9CB0" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
+                        <Border Height="1" Background="#263248" Margin="0,17,0,15" />
                         <TextBlock Text="CAPITAL Y OBJETIVO" Foreground="#8090AA" FontSize="10" FontWeight="Bold" />
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="10" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -45,12 +50,12 @@
 
                         <Border Height="1" Background="#263248" Margin="0,17,0,15" />
                         <TextBlock Text="ESCENARIOS COAST FIRE" Foreground="#B6A6D2" FontSize="10" FontWeight="Bold" />
-                        <TextBlock Text="Tu edad actual (años cumplidos)" Foreground="#D2DAE6" FontSize="10" Margin="0,8,0,4" />
-                        <TextBox x:Name="CoastCurrentAgeBox" Text="29" />
                         <TextBlock Text="Edades de jubilación a comparar" Foreground="#D2DAE6" FontSize="10" Margin="0,9,0,4" />
                         <TextBox x:Name="CoastTargetAgesBox" Text="40, 50, 60, 65" />
                         <TextBlock Text="Separalas con comas. Podés agregar o quitar edades; vacío oculta la comparación."
                                    Foreground="#8F9CB0" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
+                        <TextBlock x:Name="CoastBirthDateHint" Text="Completá tu fecha de nacimiento para activar la comparación COAST FIRE."
+                                   Foreground="#B6A6D2" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
 
                         <Border Height="1" Background="#263248" Margin="0,17,0,15" />
                         <TextBlock Text="FLUJO MENSUAL" Foreground="#8090AA" FontSize="10" FontWeight="Bold" />
@@ -192,7 +197,8 @@
                     <Border Grid.Column="0" Background="#102C2A" BorderBrush="#1B6B5D" BorderThickness="1" CornerRadius="11" Padding="14">
                         <StackPanel>
                             <TextBlock Text="FECHA ESTIMADA" Foreground="#54D6BE" FontSize="9" FontWeight="Bold" />
-                            <TextBlock x:Name="TargetDateText" Text="Completá tus datos" Foreground="{StaticResource InkBrush}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0" />
+                            <TextBlock x:Name="TargetDateText" Text="Completá tus datos" Foreground="{StaticResource InkBrush}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0" TextWrapping="Wrap" />
+                            <TextBlock x:Name="TargetAgeText" Foreground="#79E5CF" FontSize="12" FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
                             <TextBlock x:Name="TargetDateDetailText" Text="Objetivo en dólares reales" Foreground="#93A4BA" FontSize="9" Margin="0,3,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>

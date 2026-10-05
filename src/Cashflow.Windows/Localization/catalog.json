@@ -6608,5 +6608,85 @@
     "ru": "Локальный калькулятор маршрутов переводов, комиссий и конвертации валют.",
     "ja": "送金経路、手数料、通貨換算を計算するローカルアプリ。",
     "zh": "用于计算转账路径、费用和货币兑换的本地应用。"
+  },
+  "Fecha de nacimiento (opcional)": {
+    "en": "Date of birth (optional)",
+    "pt": "Data de nascimento (opcional)",
+    "fr": "Date de naissance (facultative)",
+    "it": "Data di nascita (facoltativa)",
+    "de": "Geburtsdatum (optional)",
+    "ru": "Дата рождения (необязательно)",
+    "ja": "生年月日（任意）",
+    "zh": "出生日期（可选）"
+  },
+  "Formato: día/mes/año, por ejemplo 15/06/1997.": {
+    "en": "Format: day/month/year, for example 15/06/1997.",
+    "pt": "Formato: dia/mês/ano, por exemplo 15/06/1997.",
+    "fr": "Format : jour/mois/année, par exemple 15/06/1997.",
+    "it": "Formato: giorno/mese/anno, ad esempio 15/06/1997.",
+    "de": "Format: Tag/Monat/Jahr, zum Beispiel 15/06/1997.",
+    "ru": "Формат: день/месяц/год, например 15/06/1997.",
+    "ja": "形式：日/月/年（例：15/06/1997）。",
+    "zh": "格式：日/月/年，例如 15/06/1997。"
+  },
+  "Formato: día/mes/año, por ejemplo 15/06/1997. Se usa para calcular tu edad en la fecha estimada y en COAST FIRE.": {
+    "en": "Format: day/month/year, for example 15/06/1997. Used to calculate your age on the estimated date and for COAST FIRE.",
+    "pt": "Formato: dia/mês/ano, por exemplo 15/06/1997. Usada para calcular sua idade na data estimada e no COAST FIRE.",
+    "fr": "Format : jour/mois/année, par exemple 15/06/1997. Sert à calculer votre âge à la date estimée et pour COAST FIRE.",
+    "it": "Formato: giorno/mese/anno, ad esempio 15/06/1997. Serve a calcolare la tua età alla data stimata e per COAST FIRE.",
+    "de": "Format: Tag/Monat/Jahr, zum Beispiel 15/06/1997. Berechnet Ihr Alter zum geschätzten Datum und für COAST FIRE.",
+    "ru": "Формат: день/месяц/год, например 15/06/1997. Используется для расчёта возраста на предполагаемую дату и для COAST FIRE.",
+    "ja": "形式：日/月/年（例：15/06/1997）。到達予定日とCOAST FIREの年齢計算に使用します。",
+    "zh": "格式：日/月/年，例如 15/06/1997。用于计算预计日期时的年龄和 COAST FIRE 情景。"
+  },
+  "Completá tu fecha de nacimiento para activar la comparación COAST FIRE.": {
+    "en": "Enter your date of birth to enable the COAST FIRE comparison.",
+    "pt": "Informe sua data de nascimento para ativar a comparação COAST FIRE.",
+    "fr": "Indiquez votre date de naissance pour activer la comparaison COAST FIRE.",
+    "it": "Inserisci la data di nascita per attivare il confronto COAST FIRE.",
+    "de": "Geben Sie Ihr Geburtsdatum ein, um den COAST FIRE-Vergleich zu aktivieren.",
+    "ru": "Введите дату рождения, чтобы включить сравнение COAST FIRE.",
+    "ja": "COAST FIREの比較を有効にするには、生年月日を入力してください。",
+    "zh": "请输入出生日期以启用 COAST FIRE 比较。"
+  },
+  "Ingresá una fecha de nacimiento válida en formato día/mes/año, no futura y de hasta 120 años.": {
+    "en": "Enter a valid date of birth in day/month/year format, no later than today and no more than 120 years ago.",
+    "pt": "Informe uma data de nascimento válida no formato dia/mês/ano, não futura e de até 120 anos atrás.",
+    "fr": "Saisissez une date de naissance valide au format jour/mois/année, non future et datant de 120 ans au maximum.",
+    "it": "Inserisci una data di nascita valida nel formato giorno/mese/anno, non futura e risalente al massimo a 120 anni fa.",
+    "de": "Geben Sie ein gültiges Geburtsdatum im Format Tag/Monat/Jahr ein, nicht in der Zukunft und höchstens 120 Jahre zurück.",
+    "ru": "Введите корректную дату рождения в формате день/месяц/год, не в будущем и не более 120 лет назад.",
+    "ja": "日/月/年の形式で有効な生年月日を入力してください。未来の日付や120歳を超える年齢は指定できません。",
+    "zh": "请输入有效的出生日期，格式为日/月/年，日期不能在未来，年龄不能超过120岁。"
+  },
+  "La fecha de nacimiento no puede ser futura ni corresponder a más de 120 años.": {
+    "en": "The date of birth cannot be in the future or correspond to an age over 120.",
+    "pt": "A data de nascimento não pode ser futura nem corresponder a mais de 120 anos.",
+    "fr": "La date de naissance ne peut pas être future ni correspondre à un âge supérieur à 120 ans.",
+    "it": "La data di nascita non può essere futura né corrispondere a un’età superiore a 120 anni.",
+    "de": "Das Geburtsdatum darf nicht in der Zukunft liegen oder einem Alter über 120 Jahren entsprechen.",
+    "ru": "Дата рождения не может быть в будущем или соответствовать возрасту старше 120 лет.",
+    "ja": "生年月日は未来の日付や120歳を超える年齢にできません。",
+    "zh": "出生日期不能在未来，年龄不能超过120岁。"
+  },
+  "Las edades de jubilación deben ser enteros entre 0 y {0}, separados por comas.": {
+    "en": "Retirement ages must be whole numbers between 0 and {0}, separated by commas.",
+    "pt": "As idades de aposentadoria devem ser inteiros entre 0 e {0}, separados por vírgulas.",
+    "fr": "Les âges de départ à la retraite doivent être des entiers entre 0 et {0}, séparés par des virgules.",
+    "it": "Le età di pensionamento devono essere numeri interi tra 0 e {0}, separati da virgole.",
+    "de": "Die Rentenalter müssen ganze Zahlen zwischen 0 und {0} sein, durch Kommas getrennt.",
+    "ru": "Возраст выхода на пенсию должен быть целым числом от 0 до {0}; разделяйте значения запятыми.",
+    "ja": "退職年齢は0から{0}までの整数をカンマで区切って入力してください。",
+    "zh": "退休年龄必须是0到{0}之间的整数，以逗号分隔。"
+  },
+  "Vas a tener {0} años": {
+    "en": "You will be {0} years old",
+    "pt": "Você terá {0} anos",
+    "fr": "Vous aurez {0} ans",
+    "it": "Avrai {0} anni",
+    "de": "Sie werden {0} Jahre alt sein",
+    "ru": "Вам будет {0} лет",
+    "ja": "その時の年齢：{0}歳",
+    "zh": "届时您将满{0}岁"
   }
 }

@@ -199,13 +199,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\Test-Coverage.ps1
 
 El script informa las dos métricas disponibles en el informe Cobertura de este harness: líneas y ramas. Ambas deben alcanzar el 100% del código de producción instrumentado. También verifica que la versión del proyecto coincida con las versiones compiladas del archivo y ensamblado. GitHub Actions ejecuta esta validación rápida en cada push y pull request; no hay suites externas o costosas recurrentes.
 
-Para generar un ejecutable liviano compatible con el runtime instalado:
+Para generar un ejecutable autocontenido con .NET Desktop Runtime 10.0.13:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\Publish-Windows.ps1
 ```
 
-Con `-Portable` se genera un ejecutable autocontenido, más grande, que no depende de un runtime de .NET previamente instalado.
+La publicación incluye su runtime y no requiere instalar .NET globalmente. `-Portable` conserva el nombre alternativo de carpeta portable. El SDK de desarrollo está fijado en 10.0.402.
 
 Para crear o actualizar el acceso directo personal dentro de `Codex\CODEX APPS`:
 
@@ -216,3 +216,5 @@ powershell -ExecutionPolicy Bypass -File tools\Install-CodexAppsShortcut.ps1
 ## Estructura y siguiente etapa
 
 `Cashflow.Core` no depende de WPF. La version Android puede consumir el mismo modelo y motor desde una interfaz movil (por ejemplo, .NET MAUI cuando el entorno tenga un SDK compatible), manteniendo los mismos archivos de escenarios o una importacion/exportacion equivalente.
+
+Para probar con datos separados, define CASHFLOW_DATA_DIRECTORY en el proceso antes de abrir la aplicación; sin esa variable se conserva la carpeta habitual. Las suites usan una carpeta temporal propia. Consulta [la migración y rollback](docs/net10-migration.md).

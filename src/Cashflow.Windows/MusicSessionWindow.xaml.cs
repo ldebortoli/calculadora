@@ -261,11 +261,9 @@ namespace Cashflow.Windows
             OptionsPanel.Children.Clear();
             var withoutArs = calculation.Options
                 .Where(option => option.Category == MusicSessionCategory.WithoutArs)
-                .OrderBy(option => option.SourceDebitAmount)
                 .ToArray();
             var bankedArs = calculation.Options
                 .Where(option => option.Category == MusicSessionCategory.BankedArs)
-                .OrderBy(option => option.SourceDebitAmount)
                 .ToArray();
 
             RenderBestSummary(

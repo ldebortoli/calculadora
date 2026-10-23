@@ -25,7 +25,7 @@ public sealed class LanguagePreferenceStore
     private readonly Action<string, string> _write;
     public LanguagePreferenceStore(string? path = null, Func<string, string>? read = null, Action<string, string>? write = null)
     {
-        FilePath = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RutaCashflow", "language.json");
+        FilePath = path ?? Path.Combine(Cashflow.Windows.Data.AppDataDirectory.Path, "language.json");
         _read = read ?? File.ReadAllText;
         _write = write ?? File.WriteAllText;
     }

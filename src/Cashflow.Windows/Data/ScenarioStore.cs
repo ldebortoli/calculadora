@@ -16,9 +16,7 @@ namespace Cashflow.Windows.Data
 
         public ScenarioStore(string? filePath = null)
         {
-            var folder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "RutaCashflow");
+            var folder = AppDataDirectory.Path;
             FilePath = filePath ?? Path.Combine(folder, "scenarios.json");
         }
 

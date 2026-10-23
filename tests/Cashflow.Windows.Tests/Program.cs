@@ -21,6 +21,7 @@ namespace Cashflow.Windows.Tests
     {
         private static int Main(string[] args)
         {
+            TestDataIsolation.Configure();
             if (args.Contains("--presentation")) return RunPresentationOnly();
             try
             {

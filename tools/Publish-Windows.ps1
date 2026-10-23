@@ -6,7 +6,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $projectRoot 'src\Cashflow.Windows\Cashflow.Windows.csproj'
 $outputName = if ($Portable) { 'RutaCashflow-Windows-portable' } else { 'RutaCashflow-win-x64' }
 $outputPath = Join-Path $projectRoot "artifacts\$outputName"
-$selfContained = if ($Portable) { 'true' } else { 'false' }
+$selfContained = 'true'
 
 Push-Location $projectRoot
 try {

@@ -10,8 +10,8 @@ $settingsPath = Join-Path $PSScriptRoot "coverage.runsettings.xml"
 $coreReport = Join-Path $coverageDirectory "core.cobertura.xml"
 $windowsReport = Join-Path $coverageDirectory "windows.cobertura.xml"
 $combinedReport = Join-Path $coverageDirectory "coverage.cobertura.xml"
-$coreAssembly = Join-Path $root "tests/Cashflow.Core.Tests/bin/Release/net8.0/Cashflow.Core.Tests.dll"
-$windowsAssembly = Join-Path $root "tests/Cashflow.Windows.Tests/bin/Release/net8.0-windows/Cashflow.Windows.Tests.dll"
+$coreAssembly = Join-Path $root "tests/Cashflow.Core.Tests/bin/Release/net10.0/Cashflow.Core.Tests.dll"
+$windowsAssembly = Join-Path $root "tests/Cashflow.Windows.Tests/bin/Release/net10.0-windows/Cashflow.Windows.Tests.dll"
 
 New-Item -ItemType Directory -Path $coverageDirectory -Force | Out-Null
 foreach ($report in @($coreReport, $windowsReport, $combinedReport)) {
@@ -32,7 +32,7 @@ try {
     if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$' -or $releaseFileVersion -ne "$releaseVersion.0") {
         throw "Version y FileVersion deben coincidir: $releaseVersion / $releaseFileVersion."
     }
-    $windowsProductAssembly = Join-Path $root 'src/Cashflow.Windows/bin/Release/net8.0-windows/RutaCashflow.dll'
+    $windowsProductAssembly = Join-Path $root 'src/Cashflow.Windows/bin/Release/net10.0-windows/RutaCashflow.dll'
     $builtFileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($windowsProductAssembly).FileVersion
     $builtAssemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($windowsProductAssembly).Version.ToString()
     if ($builtFileVersion -ne $releaseFileVersion -or $builtAssemblyVersion -ne $releaseFileVersion) {

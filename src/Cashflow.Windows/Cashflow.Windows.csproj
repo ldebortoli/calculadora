@@ -1,18 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <RuntimeFrameworkVersion>10.0.13</RuntimeFrameworkVersion>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>12.0</LangVersion>
     <AssemblyName>RutaCashflow</AssemblyName>
     <RootNamespace>Cashflow.Windows</RootNamespace>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <AssemblyTitle>Calculadora</AssemblyTitle>
     <Product>Calculadora</Product>
     <Description>Calculadora local de rutas de transferencia, comisiones y conversiones.</Description>
-    <Version>0.9.16</Version>
-    <FileVersion>0.9.16.0</FileVersion>
+    <Version>0.9.17</Version>
+    <FileVersion>0.9.17.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cashflow.Core\Cashflow.Core.csproj" />
